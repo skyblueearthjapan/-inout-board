@@ -212,12 +212,21 @@ const SheetService = (function() {
 
     // B〜E列（2〜5列目）を更新
     // startTime: 日付（YYYY-MM-DD）そのまま保存
-    // endTime: 時刻（HH:MM）正規化して保存
+    // endTime: 時刻（HH:MM）文字列として保存（タイムゾーン問題を回避）
     const normalizedEndTime = Validation.normalizeTime(payload.endTime || '');
 
     sheet.getRange(rowIndex, 2).setValue(payload.destination || '');
-    sheet.getRange(rowIndex, 3).setValue(payload.startTime || '');  // 日付そのまま
-    sheet.getRange(rowIndex, 4).setValue(normalizedEndTime);        // 時刻を正規化
+
+    // 出社日セルを文字列として保存（日付変換を防ぐ）
+    const startDateCell = sheet.getRange(rowIndex, 3);
+    startDateCell.setNumberFormat('@');  // 書式なしテキスト（文字列）
+    startDateCell.setValue(payload.startTime || '');
+
+    // 帰社時刻セルを文字列として保存（タイムゾーン変換を防ぐ）
+    const endTimeCell = sheet.getRange(rowIndex, 4);
+    endTimeCell.setNumberFormat('@');  // 書式なしテキスト（文字列）
+    endTimeCell.setValue(normalizedEndTime);
+
     sheet.getRange(rowIndex, 5).setValue(payload.note || '');
 
     SpreadsheetApp.flush();
