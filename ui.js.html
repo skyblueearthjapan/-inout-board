@@ -84,7 +84,10 @@
 
     rows.forEach(row => {
       const tr = createTableRow(row);
-      elements.tableBody.appendChild(tr);
+      // 名前がない行は非表示（ホワイトボードに合わせる）
+      if (tr) {
+        elements.tableBody.appendChild(tr);
+      }
     });
 
     elements.tableContainer.classList.remove('hidden');
@@ -92,6 +95,11 @@
   }
 
   function createTableRow(row) {
+    // 名前がない行はスキップ（ホワイトボードに合わせる）
+    if (!row.name || row.name.trim() === '') {
+      return null;
+    }
+
     const tr = document.createElement('tr');
     tr.dataset.rowIndex = row.rowIndex;
 
