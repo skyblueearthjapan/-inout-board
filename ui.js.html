@@ -198,19 +198,10 @@
     }
 
     const input = document.createElement('input');
-    input.type = 'text';
+    input.type = 'time';  // タイムピッカー（プルダウン＋手動入力可能）
     input.className = 'cell-input';
     input.name = fieldName;
     input.value = value || '';
-    input.inputMode = 'numeric';  // モバイルで数字キーボード
-
-    // blur時に時刻を整形（9:5 → 09:05）
-    input.addEventListener('blur', (e) => {
-      const formatted = formatTimeInput(e.target.value);
-      if (formatted !== null) {
-        e.target.value = formatted;
-      }
-    });
 
     // Enterキーで保存
     input.addEventListener('keypress', (e) => {
@@ -231,14 +222,18 @@
       return 'row-empty';
     }
 
-    switch (row.status) {
-      case 'OUT':
-        return 'row-out';
-      case 'BACK':
-        return 'row-back';
-      default:
-        return 'row-none';
+    // 帰社時刻がある → 日帰り（緑色）
+    if (row.endTime && row.endTime.trim() !== '') {
+      return 'row-back';  // 緑色
     }
+
+    // 出社日があって帰社時刻がない → 宿泊あり（黄色）
+    if (row.startTime && row.startTime.trim() !== '') {
+      return 'row-out';  // 黄色
+    }
+
+    // どちらもない → 通常
+    return 'row-none';
   }
 
   // ========================================
