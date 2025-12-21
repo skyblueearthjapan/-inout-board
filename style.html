@@ -199,8 +199,12 @@ body {
   width: auto;  /* 行先：残り全部（約60%） */
 }
 
+.col-date {
+  width: 130px;  /* 出社日：日付ピッカー用に少し広く */
+}
+
 .col-time {
-  width: 100px;  /* 出社・帰社時間：狭く */
+  width: 100px;  /* 帰社時刻：狭く */
 }
 
 .col-note {
@@ -243,6 +247,13 @@ body {
 .cell-input.destination {
   font-size: 18px;
   font-weight: 650;
+}
+
+/* 日付セル（出社日） */
+.date-cell .cell-input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
 }
 
 /* 時刻は中央寄せでコンパクト */

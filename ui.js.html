@@ -115,10 +115,10 @@
     // 行先（プレースホルダなし、cell-input + destination）
     tr.appendChild(createInputCell('destination', row.destination, '', 'destination'));
 
-    // 出社時間（プレースホルダなし、time-cell）
-    tr.appendChild(createTimeInputCell('startTime', row.startTime, 'time-cell'));
+    // 出社日（日付ピッカー、date-cell）
+    tr.appendChild(createDateInputCell('startTime', row.startTime, 'date-cell'));
 
-    // 帰社時間（プレースホルダなし、time-cell）
+    // 帰社時刻（時刻入力、time-cell）
     tr.appendChild(createTimeInputCell('endTime', row.endTime, 'time-cell'));
 
     // 備考（プレースホルダなし、note-cell）
@@ -152,6 +152,31 @@
     if (placeholder) {
       input.placeholder = placeholder;
     }
+
+    // Enterキーで保存
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const row = e.target.closest('tr');
+        const rowIndex = parseInt(row.dataset.rowIndex);
+        saveRow(rowIndex);
+      }
+    });
+
+    td.appendChild(input);
+    return td;
+  }
+
+  function createDateInputCell(fieldName, value, tdClass) {
+    const td = document.createElement('td');
+    if (tdClass) {
+      td.className = tdClass;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'date';  // 日付ピッカー
+    input.className = 'cell-input';
+    input.name = fieldName;
+    input.value = value || '';
 
     // Enterキーで保存
     input.addEventListener('keypress', (e) => {
@@ -335,28 +360,31 @@
   function validatePayload(payload) {
     const errors = [];
 
-    // 時刻形式チェック
-    if (payload.startTime && !isValidTimeFormat(payload.startTime)) {
-      errors.push('出社時間の形式が不正です（例: 9:30 または 09:30）');
+    // 出社日の形式チェック（YYYY-MM-DD）
+    if (payload.startTime && !isValidDateFormat(payload.startTime)) {
+      errors.push('出社日の形式が不正です（例: 2025-12-25）');
     }
 
+    // 帰社時刻の形式チェック（HH:MM）
     if (payload.endTime && !isValidTimeFormat(payload.endTime)) {
-      errors.push('帰社時間の形式が不正です（例: 17:30 または 09:00）');
-    }
-
-    // 時刻の論理チェック
-    if (payload.startTime && payload.endTime) {
-      const start = normalizeTime(payload.startTime);
-      const end = normalizeTime(payload.endTime);
-      if (start && end && start > end) {
-        errors.push('帰社時間は出社時間より後にしてください');
-      }
+      errors.push('帰社時刻の形式が不正です（例: 17:30 または 09:00）');
     }
 
     if (errors.length > 0) {
       return { valid: false, message: errors.join('\n') };
     }
     return { valid: true, message: '' };
+  }
+
+  function isValidDateFormat(dateStr) {
+    if (!dateStr || dateStr.trim() === '') return true;
+    // YYYY-MM-DD形式をチェック
+    const pattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!pattern.test(dateStr.trim())) return false;
+
+    // 実際に有効な日付かチェック
+    const date = new Date(dateStr);
+    return !isNaN(date.getTime());
   }
 
   function isValidTimeFormat(timeStr) {
