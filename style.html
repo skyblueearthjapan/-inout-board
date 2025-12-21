@@ -1,6 +1,6 @@
 <style>
 /* ========================================
-   基本スタイル
+   全体
    ======================================== */
 * {
   box-sizing: border-box;
@@ -9,37 +9,37 @@
 }
 
 body {
-  font-family: 'Segoe UI', 'Meiryo', 'メイリオ', sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background: #f4f7fb;
+  color: #0b1f3a;
   line-height: 1.6;
-  padding: 16px;
 }
 
 .container {
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 /* ========================================
    ヘッダー
    ======================================== */
 .header {
-  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 8px 8px 0 0;
+  background: #244a73;
+  color: #fff;
+  padding: 16px 20px;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
 .title {
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: .04em;
   font-weight: 600;
-  letter-spacing: 0.05em;
 }
 
 .header-controls {
@@ -87,15 +87,6 @@ body {
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background-color: #3182ce;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #2c5282;
-}
-
 .btn-secondary {
   background-color: rgba(255,255,255,0.2);
   color: white;
@@ -106,17 +97,6 @@ body {
   background-color: rgba(255,255,255,0.3);
 }
 
-.btn-save {
-  background-color: #38a169;
-  color: white;
-  padding: 4px 12px;
-  font-size: 0.85rem;
-}
-
-.btn-save:hover:not(:disabled) {
-  background-color: #2f855a;
-}
-
 .btn-icon {
   font-size: 1.1em;
 }
@@ -125,28 +105,25 @@ body {
    ステータスメッセージ
    ======================================== */
 .status-message {
-  padding: 12px 16px;
-  border-radius: 4px;
-  margin-bottom: 16px;
+  padding: 12px 20px;
+  margin: 0;
   font-size: 0.9rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
 .status-message.success {
   background-color: #c6f6d5;
   color: #22543d;
-  border: 1px solid #9ae6b4;
 }
 
 .status-message.error {
   background-color: #fed7d7;
   color: #742a2a;
-  border: 1px solid #fc8181;
 }
 
 .status-message.info {
   background-color: #bee3f8;
   color: #2a4365;
-  border: 1px solid #90cdf4;
 }
 
 .hidden {
@@ -164,6 +141,7 @@ body {
   padding: 48px;
   gap: 16px;
   color: #666;
+  background: #fff;
 }
 
 .spinner {
@@ -180,121 +158,141 @@ body {
 }
 
 /* ========================================
-   テーブル
+   テーブル：罫線を繋げる（重要）
    ======================================== */
 .table-container {
-  background: white;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: #fff;
   overflow-x: auto;
 }
 
 .outing-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: collapse;  /* ←隙間ゼロ */
+  table-layout: fixed;
+  background: #fff;
 }
 
 .outing-table th,
 .outing-table td {
-  padding: 10px 12px;
+  border: 1px solid #c9d4e3;
+  padding: 0;                 /* ←セル余白を消す */
+  height: 54px;               /* 見やすい行高 */
+  vertical-align: middle;
+}
+
+/* ヘッダ行 */
+.outing-table thead th {
+  background: #244a73;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 10px;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
 }
 
-.outing-table th {
-  background-color: #1a365d;
-  color: white;
-  font-weight: 600;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.outing-table tbody tr:hover {
-  background-color: #f7fafc;
-}
-
-/* 列幅 */
+/* 列幅（重要：行先を最大に） */
 .col-name {
-  width: 100px;
-  min-width: 80px;
+  width: 140px;
 }
 
 .col-destination {
-  width: 180px;
-  min-width: 120px;
+  width: auto;  /* 残り全部 */
 }
 
 .col-time {
-  width: 100px;
-  min-width: 90px;
+  width: 92px;
 }
 
 .col-note {
-  min-width: 150px;
+  width: 260px;
 }
 
 .col-action {
-  width: 80px;
-  min-width: 70px;
-  text-align: center;
-}
-
-/* 入力フィールド */
-.outing-table input[type="text"] {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: border-color 0.2s;
-}
-
-.outing-table input[type="text"]:focus {
-  outline: none;
-  border-color: #3182ce;
-  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
-}
-
-.outing-table input[type="text"]::placeholder {
-  color: #a0aec0;
-}
-
-/* 名前列 */
-.name-cell {
-  font-weight: 500;
-  color: #2d3748;
+  width: 90px;
 }
 
 /* ========================================
-   行ステータス
+   名前セル（大きく、濃く、太く）
    ======================================== */
-.row-out {
-  background-color: #feebc8 !important;
+.name-cell {
+  padding: 0 12px !important;
+  font-weight: 800;
+  font-size: 19px;
+  color: #0b1f3a;
+  background: #f7f9fc;
+  white-space: nowrap;
 }
 
-.row-out:hover {
-  background-color: #fbd38d !important;
+/* ========================================
+   inputを"セル編集"風にする
+   ======================================== */
+.cell-input {
+  width: 100%;
+  height: 54px;
+  border: 0;                 /* 箱を消す */
+  outline: none;
+  padding: 0 10px;           /* 最低限 */
+  font-size: 16px;
+  background: transparent;   /* セル背景を活かす */
+  color: #0b1f3a;
+  font-family: inherit;
 }
 
-.row-back {
-  background-color: #c6f6d5 !important;
+/* 行先を大きく */
+.cell-input.destination {
+  font-size: 18px;
+  font-weight: 650;
 }
 
-.row-back:hover {
-  background-color: #9ae6b4 !important;
+/* 時刻は中央寄せでコンパクト */
+.time-cell .cell-input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.row-none {
-  background-color: #f7fafc;
+/* 備考 */
+.note-cell .cell-input {
+  font-size: 16px;
 }
 
-/* 空行（名前なし） */
-.row-empty {
-  background-color: #edf2f7;
+/* フォーカス時だけ薄く強調（スプレッドシートっぽく） */
+.outing-table td:focus-within {
+  background: #eef6ff;
+  box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
-.row-empty:hover {
-  background-color: #e2e8f0;
+/* ========================================
+   行ステータス（外出中ハイライト）
+   ======================================== */
+.row-out td,
+.row-out th {
+  background: #fff3e0 !important; /* 薄いオレンジ */
+}
+
+.row-out td:focus-within {
+  background: #ffe8c2 !important;
+  box-shadow: inset 0 0 0 2px #6aa4ff;
+}
+
+.row-back td,
+.row-back th {
+  background: #e8f5e9; /* 薄い緑 */
+}
+
+.row-back td:focus-within {
+  background: #d4edd7 !important;
+  box-shadow: inset 0 0 0 2px #6aa4ff;
+}
+
+.row-none td,
+.row-none th {
+  background: #fff;
+}
+
+.row-empty td,
+.row-empty th {
+  background: #f7f9fc;
+  opacity: 0.6;
 }
 
 /* 保存中の行 */
@@ -304,10 +302,40 @@ body {
 }
 
 /* ========================================
+   保存ボタン（控えめに）
+   ======================================== */
+.save-btn {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  background: #2f9e44;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #268039;
+}
+
+.save-btn:active {
+  transform: translateY(1px);
+}
+
+.save-btn:disabled {
+  background: #94d3a2;
+  cursor: not-allowed;
+}
+
+/* ========================================
    凡例
    ======================================== */
 .legend {
-  margin-top: 16px;
+  padding: 16px 20px;
+  background: #fff;
+  border-top: 1px solid #c9d4e3;
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
@@ -329,47 +357,11 @@ body {
 }
 
 .legend-out {
-  background-color: #feebc8;
+  background-color: #fff3e0;
 }
 
 .legend-back {
-  background-color: #c6f6d5;
-}
-
-/* ========================================
-   レスポンシブ
-   ======================================== */
-@media (max-width: 768px) {
-  body {
-    padding: 8px;
-  }
-  
-  .header {
-    padding: 12px 16px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .header-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .outing-table th,
-  .outing-table td {
-    padding: 8px;
-    font-size: 0.85rem;
-  }
-  
-  .outing-table input[type="text"] {
-    padding: 4px 6px;
-    font-size: 0.85rem;
-  }
-  
-  .btn-save {
-    padding: 4px 8px;
-    font-size: 0.8rem;
-  }
+  background-color: #e8f5e9;
 }
 
 /* ========================================
@@ -380,8 +372,8 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .row-updated {
@@ -389,7 +381,49 @@ body {
 }
 
 @keyframes highlightRow {
-  0% { background-color: #bee3f8; }
-  100% { background-color: inherit; }
+  0% { background-color: #bee3f8 !important; }
+  100% { background-color: inherit !important; }
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 16px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .outing-table th,
+  .outing-table td {
+    height: 48px;
+  }
+
+  .cell-input {
+    height: 48px;
+    font-size: 14px;
+    padding: 0 8px;
+  }
+
+  .cell-input.destination {
+    font-size: 16px;
+  }
+
+  .name-cell {
+    font-size: 16px;
+    padding: 0 8px !important;
+  }
+
+  .save-btn {
+    height: 48px;
+    font-size: 13px;
+  }
+
+  .legend {
+    padding: 12px 16px;
+  }
 }
 </style>
