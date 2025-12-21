@@ -17,6 +17,7 @@
   const elements = {
     dateInput: null,
     reloadBtn: null,
+    clearAllBtn: null,
     statusMessage: null,
     loading: null,
     tableContainer: null,
@@ -32,6 +33,7 @@
     // DOM要素を取得
     elements.dateInput = document.getElementById('dateInput');
     elements.reloadBtn = document.getElementById('reloadBtn');
+    elements.clearAllBtn = document.getElementById('clearAllBtn');
     elements.statusMessage = document.getElementById('statusMessage');
     elements.loading = document.getElementById('loading');
     elements.tableContainer = document.getElementById('tableContainer');
@@ -43,6 +45,7 @@
     // イベントリスナー
     elements.dateInput.addEventListener('change', onDateChange);
     elements.reloadBtn.addEventListener('click', loadData);
+    elements.clearAllBtn.addEventListener('click', clearAllRows);
 
     // 初期データ読み込み
     loadData();
@@ -124,14 +127,21 @@
     // 備考（プレースホルダなし、note-cell）
     tr.appendChild(createInputCell('note', row.note, '', 'note-cell'));
 
-    // 保存ボタン
+    // 操作ボタン（保存・クリア）
     const actionTd = document.createElement('td');
+    actionTd.className = 'action-cell';
 
     const saveBtn = document.createElement('button');
     saveBtn.className = 'save-btn';
     saveBtn.textContent = '保存';
     saveBtn.addEventListener('click', () => saveRow(row.rowIndex));
     actionTd.appendChild(saveBtn);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'clear-btn';
+    clearBtn.textContent = 'クリア';
+    clearBtn.addEventListener('click', () => clearRow(row.rowIndex));
+    actionTd.appendChild(clearBtn);
 
     tr.appendChild(actionTd);
 
@@ -272,6 +282,111 @@
 
     // 整形できない場合はそのまま返す（バリデーションエラーは保存時に出す）
     return null;
+  }
+
+  // ========================================
+  // 全行クリア
+  // ========================================
+  function clearAllRows() {
+    if (!confirm('すべての行の情報をクリアしますか？（名前以外）\n\nこの操作は取り消せません。')) {
+      return;
+    }
+
+    const rows = elements.tableBody.querySelectorAll('tr');
+    if (rows.length === 0) {
+      showStatus('クリアする行がありません', 'info', 2000);
+      return;
+    }
+
+    // すべてクリアボタンを無効化
+    elements.clearAllBtn.disabled = true;
+    elements.clearAllBtn.textContent = 'クリア中...';
+
+    let completed = 0;
+    const total = rows.length;
+
+    rows.forEach((tr) => {
+      const rowIndex = parseInt(tr.dataset.rowIndex);
+
+      // 空のデータで保存
+      const payload = {
+        rowIndex: rowIndex,
+        destination: '',
+        startTime: '',
+        endTime: '',
+        note: ''
+      };
+
+      google.script.run
+        .withSuccessHandler(function(updatedRow) {
+          completed++;
+          updateRowDisplay(tr, updatedRow);
+          tr.className = getRowClass(updatedRow);
+
+          if (completed === total) {
+            elements.clearAllBtn.disabled = false;
+            elements.clearAllBtn.textContent = 'すべてクリア';
+            showStatus('すべての行をクリアしました', 'success', 2000);
+          }
+        })
+        .withFailureHandler(function(error) {
+          completed++;
+          console.error('Error clearing row:', error);
+
+          if (completed === total) {
+            elements.clearAllBtn.disabled = false;
+            elements.clearAllBtn.textContent = 'すべてクリア';
+            showStatus('一部の行のクリアに失敗しました', 'error');
+          }
+        })
+        .updateRow(currentDate, payload);
+    });
+  }
+
+  // ========================================
+  // 行クリア
+  // ========================================
+  function clearRow(rowIndex) {
+    if (!confirm('この行の情報をクリアしますか？（名前以外）')) {
+      return;
+    }
+
+    const tr = elements.tableBody.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    if (!tr) return;
+
+    // 入力フィールドを空にする
+    const inputs = tr.querySelectorAll('input');
+    inputs[0].value = '';  // 行先
+    inputs[1].value = '';  // 出社日
+    inputs[2].value = '';  // 帰社時刻
+    inputs[3].value = '';  // 備考
+
+    // 空のデータで保存
+    const payload = {
+      rowIndex: rowIndex,
+      destination: '',
+      startTime: '',
+      endTime: '',
+      note: ''
+    };
+
+    // 保存中状態
+    tr.classList.add('row-saving');
+    const saveBtn = tr.querySelector('.save-btn');
+    const clearBtn = tr.querySelector('.clear-btn');
+    saveBtn.disabled = true;
+    clearBtn.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(function(updatedRow) {
+        onRowSaved(updatedRow, tr, saveBtn);
+        clearBtn.disabled = false;
+      })
+      .withFailureHandler(function(error) {
+        onSaveError(error, tr, saveBtn);
+        clearBtn.disabled = false;
+      })
+      .updateRow(currentDate, payload);
   }
 
   // ========================================

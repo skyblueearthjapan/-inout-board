@@ -97,6 +97,15 @@ body {
   background-color: rgba(255,255,255,0.3);
 }
 
+.btn-danger {
+  background-color: #d9534f;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
 .btn-icon {
   font-size: 1.1em;
 }
@@ -314,26 +323,33 @@ body {
 }
 
 /* ========================================
-   保存ボタン（控えめに）
+   操作ボタン（保存・クリア）
    ======================================== */
-.save-btn {
+.action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px !important;
+}
+
+.save-btn,
+.clear-btn {
   width: 100%;
-  height: 54px;
+  height: 25px;
   border: 0;
-  background: #2f9e44;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background 0.2s;
+}
+
+.save-btn {
+  background: #2f9e44;
 }
 
 .save-btn:hover:not(:disabled) {
   background: #268039;
-}
-
-.save-btn:active {
-  transform: translateY(1px);
 }
 
 .save-btn:disabled {
@@ -341,13 +357,34 @@ body {
   cursor: not-allowed;
 }
 
+.clear-btn {
+  background: #d9534f;
+}
+
+.clear-btn:hover:not(:disabled) {
+  background: #c9302c;
+}
+
+.clear-btn:disabled {
+  background: #f5a9a6;
+  cursor: not-allowed;
+}
+
 /* ========================================
-   凡例
+   凡例とクリアボタン
    ======================================== */
-.legend {
+.legend-container {
   padding: 16px 20px;
   background: #fff;
   border-top: 1px solid #c9d4e3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legend {
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
