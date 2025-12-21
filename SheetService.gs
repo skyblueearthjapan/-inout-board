@@ -94,7 +94,39 @@ const SheetService = (function() {
   }
   
   /**
-   * セル値を文字列に変換
+   * セル値を文字列に変換（時刻用）
+   * @param {*} value
+   * @returns {string}
+   */
+  function cellToTimeString(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (value instanceof Date) {
+      // 時刻として扱う
+      return Utilities.formatDate(value, 'Asia/Tokyo', 'HH:mm');
+    }
+    return String(value).trim();
+  }
+
+  /**
+   * セル値を文字列に変換（日付用）
+   * @param {*} value
+   * @returns {string}
+   */
+  function cellToDateString(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (value instanceof Date) {
+      // 日付として扱う
+      return Utilities.formatDate(value, 'Asia/Tokyo', 'yyyy-MM-dd');
+    }
+    return String(value).trim();
+  }
+
+  /**
+   * セル値を文字列に変換（汎用）
    * @param {*} value
    * @returns {string}
    */
@@ -103,7 +135,7 @@ const SheetService = (function() {
       return '';
     }
     if (value instanceof Date) {
-      // 時刻として扱う場合
+      // デフォルトは時刻として扱う（後方互換性）
       return Utilities.formatDate(value, 'Asia/Tokyo', 'HH:mm');
     }
     return String(value).trim();
@@ -140,10 +172,10 @@ const SheetService = (function() {
     const rows = values.map((row, index) => {
       const name = cellToString(row[0]);
       const destination = cellToString(row[1]);
-      const startTime = cellToString(row[2]);
-      const endTime = cellToString(row[3]);
+      const startTime = cellToDateString(row[2]);  // 日付として扱う
+      const endTime = cellToTimeString(row[3]);    // 時刻として扱う
       const note = cellToString(row[4]);
-      
+
       return {
         rowIndex: startRow + index,
         name: name,
@@ -177,32 +209,32 @@ const SheetService = (function() {
     SpreadsheetApp.flush();
     
     const rowIndex = payload.rowIndex;
-    
+
     // B〜E列（2〜5列目）を更新
-    // 時刻を正規化
-    const normalizedStartTime = Validation.normalizeTime(payload.startTime || '');
+    // startTime: 日付（YYYY-MM-DD）そのまま保存
+    // endTime: 時刻（HH:MM）正規化して保存
     const normalizedEndTime = Validation.normalizeTime(payload.endTime || '');
-    
+
     sheet.getRange(rowIndex, 2).setValue(payload.destination || '');
-    sheet.getRange(rowIndex, 3).setValue(normalizedStartTime);
-    sheet.getRange(rowIndex, 4).setValue(normalizedEndTime);
+    sheet.getRange(rowIndex, 3).setValue(payload.startTime || '');  // 日付そのまま
+    sheet.getRange(rowIndex, 4).setValue(normalizedEndTime);        // 時刻を正規化
     sheet.getRange(rowIndex, 5).setValue(payload.note || '');
-    
+
     SpreadsheetApp.flush();
-    
+
     // 更新後の行を読み直す
     const updatedRow = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
-    
+
     return {
       rowIndex: rowIndex,
       name: cellToString(updatedRow[0]),
       destination: cellToString(updatedRow[1]),
-      startTime: cellToString(updatedRow[2]),
-      endTime: cellToString(updatedRow[3]),
+      startTime: cellToDateString(updatedRow[2]),  // 日付として取得
+      endTime: cellToTimeString(updatedRow[3]),    // 時刻として取得
       note: cellToString(updatedRow[4]),
       status: calculateStatus(
-        cellToString(updatedRow[2]),
-        cellToString(updatedRow[3])
+        cellToDateString(updatedRow[2]),
+        cellToTimeString(updatedRow[3])
       )
     };
   }
