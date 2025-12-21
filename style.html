@@ -1,0 +1,395 @@
+<style>
+/* ========================================
+   基本スタイル
+   ======================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', 'Meiryo', 'メイリオ', sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+  padding: 16px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ========================================
+   ヘッダー
+   ======================================== */
+.header {
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.date-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-picker label {
+  font-size: 0.9rem;
+}
+
+.date-picker input[type="date"] {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+/* ========================================
+   ボタン
+   ======================================== */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3182ce;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2c5282;
+}
+
+.btn-secondary {
+  background-color: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255,255,255,0.3);
+}
+
+.btn-save {
+  background-color: #38a169;
+  color: white;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #2f855a;
+}
+
+.btn-icon {
+  font-size: 1.1em;
+}
+
+/* ========================================
+   ステータスメッセージ
+   ======================================== */
+.status-message {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.status-message.success {
+  background-color: #c6f6d5;
+  color: #22543d;
+  border: 1px solid #9ae6b4;
+}
+
+.status-message.error {
+  background-color: #fed7d7;
+  color: #742a2a;
+  border: 1px solid #fc8181;
+}
+
+.status-message.info {
+  background-color: #bee3f8;
+  color: #2a4365;
+  border: 1px solid #90cdf4;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ========================================
+   ローディング
+   ======================================== */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 16px;
+  color: #666;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3182ce;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   テーブル
+   ======================================== */
+.table-container {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow-x: auto;
+}
+
+.outing-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.outing-table th,
+.outing-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.outing-table th {
+  background-color: #1a365d;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.outing-table tbody tr:hover {
+  background-color: #f7fafc;
+}
+
+/* 列幅 */
+.col-name {
+  width: 100px;
+  min-width: 80px;
+}
+
+.col-destination {
+  width: 180px;
+  min-width: 120px;
+}
+
+.col-time {
+  width: 100px;
+  min-width: 90px;
+}
+
+.col-note {
+  min-width: 150px;
+}
+
+.col-action {
+  width: 80px;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* 入力フィールド */
+.outing-table input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.outing-table input[type="text"]:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+.outing-table input[type="text"]::placeholder {
+  color: #a0aec0;
+}
+
+/* 名前列 */
+.name-cell {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+/* ========================================
+   行ステータス
+   ======================================== */
+.row-out {
+  background-color: #feebc8 !important;
+}
+
+.row-out:hover {
+  background-color: #fbd38d !important;
+}
+
+.row-back {
+  background-color: #c6f6d5 !important;
+}
+
+.row-back:hover {
+  background-color: #9ae6b4 !important;
+}
+
+.row-none {
+  background-color: #f7fafc;
+}
+
+/* 空行（名前なし） */
+.row-empty {
+  background-color: #edf2f7;
+}
+
+.row-empty:hover {
+  background-color: #e2e8f0;
+}
+
+/* 保存中の行 */
+.row-saving {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ========================================
+   凡例
+   ======================================== */
+.legend {
+  margin-top: 16px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.legend-out {
+  background-color: #feebc8;
+}
+
+.legend-back {
+  background-color: #c6f6d5;
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 768px) {
+  body {
+    padding: 8px;
+  }
+  
+  .header {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .outing-table th,
+  .outing-table td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .outing-table input[type="text"] {
+    padding: 4px 6px;
+    font-size: 0.85rem;
+  }
+  
+  .btn-save {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ========================================
+   アニメーション
+   ======================================== */
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.row-updated {
+  animation: highlightRow 1s ease;
+}
+
+@keyframes highlightRow {
+  0% { background-color: #bee3f8; }
+  100% { background-color: inherit; }
+}
+</style>

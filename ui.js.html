@@ -1,0 +1,322 @@
+<script>
+/**
+ * 外出記入板 フロントエンドJS
+ */
+(function() {
+  'use strict';
+  
+  // ========================================
+  // 状態管理
+  // ========================================
+  let currentDate = INITIAL_DATE;
+  let currentData = null;
+  
+  // ========================================
+  // DOM要素
+  // ========================================
+  const elements = {
+    dateInput: null,
+    reloadBtn: null,
+    statusMessage: null,
+    loading: null,
+    tableContainer: null,
+    tableBody: null
+  };
+  
+  // ========================================
+  // 初期化
+  // ========================================
+  document.addEventListener('DOMContentLoaded', init);
+  
+  function init() {
+    // DOM要素を取得
+    elements.dateInput = document.getElementById('dateInput');
+    elements.reloadBtn = document.getElementById('reloadBtn');
+    elements.statusMessage = document.getElementById('statusMessage');
+    elements.loading = document.getElementById('loading');
+    elements.tableContainer = document.getElementById('tableContainer');
+    elements.tableBody = document.getElementById('tableBody');
+    
+    // 日付入力を初期化
+    elements.dateInput.value = currentDate;
+    
+    // イベントリスナー
+    elements.dateInput.addEventListener('change', onDateChange);
+    elements.reloadBtn.addEventListener('click', loadData);
+    
+    // 初期データ読み込み
+    loadData();
+  }
+  
+  // ========================================
+  // データ読み込み
+  // ========================================
+  function loadData() {
+    showLoading(true);
+    hideStatus();
+    
+    google.script.run
+      .withSuccessHandler(onDataLoaded)
+      .withFailureHandler(onError)
+      .getDayData(currentDate);
+  }
+  
+  function onDataLoaded(data) {
+    currentData = data;
+    renderTable(data.rows);
+    showLoading(false);
+    showStatus('データを読み込みました', 'success', 2000);
+  }
+  
+  // ========================================
+  // 日付変更
+  // ========================================
+  function onDateChange(e) {
+    currentDate = e.target.value;
+    loadData();
+  }
+  
+  // ========================================
+  // テーブル描画
+  // ========================================
+  function renderTable(rows) {
+    elements.tableBody.innerHTML = '';
+    
+    rows.forEach(row => {
+      const tr = createTableRow(row);
+      elements.tableBody.appendChild(tr);
+    });
+    
+    elements.tableContainer.classList.remove('hidden');
+    elements.tableContainer.classList.add('fade-in');
+  }
+  
+  function createTableRow(row) {
+    const tr = document.createElement('tr');
+    tr.dataset.rowIndex = row.rowIndex;
+    
+    // ステータスに応じたクラス
+    tr.className = getRowClass(row);
+    
+    // 名前セル（編集不可）
+    const nameTd = document.createElement('td');
+    nameTd.className = 'name-cell';
+    nameTd.textContent = row.name || '';
+    tr.appendChild(nameTd);
+    
+    // 行先
+    tr.appendChild(createInputCell('destination', row.destination, '行先'));
+    
+    // 出社時間
+    tr.appendChild(createInputCell('startTime', row.startTime, 'HH:MM'));
+    
+    // 帰社時間
+    tr.appendChild(createInputCell('endTime', row.endTime, 'HH:MM'));
+    
+    // 備考
+    tr.appendChild(createInputCell('note', row.note, '備考'));
+    
+    // 保存ボタン
+    const actionTd = document.createElement('td');
+    actionTd.style.textAlign = 'center';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-save';
+    saveBtn.textContent = '保存';
+    saveBtn.addEventListener('click', () => saveRow(row.rowIndex));
+    actionTd.appendChild(saveBtn);
+    
+    tr.appendChild(actionTd);
+    
+    return tr;
+  }
+  
+  function createInputCell(fieldName, value, placeholder) {
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = fieldName;
+    input.value = value || '';
+    input.placeholder = placeholder || '';
+    
+    // Enterキーで保存
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const row = e.target.closest('tr');
+        const rowIndex = parseInt(row.dataset.rowIndex);
+        saveRow(rowIndex);
+      }
+    });
+    
+    td.appendChild(input);
+    return td;
+  }
+  
+  function getRowClass(row) {
+    // 名前がない行は空行
+    if (!row.name || row.name.trim() === '') {
+      return 'row-empty';
+    }
+    
+    switch (row.status) {
+      case 'OUT':
+        return 'row-out';
+      case 'BACK':
+        return 'row-back';
+      default:
+        return 'row-none';
+    }
+  }
+  
+  // ========================================
+  // 行保存
+  // ========================================
+  function saveRow(rowIndex) {
+    const tr = elements.tableBody.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    if (!tr) return;
+    
+    // 入力値を取得
+    const inputs = tr.querySelectorAll('input');
+    const payload = {
+      rowIndex: rowIndex,
+      destination: inputs[0].value,
+      startTime: inputs[1].value,
+      endTime: inputs[2].value,
+      note: inputs[3].value
+    };
+    
+    // クライアント側バリデーション
+    const validationResult = validatePayload(payload);
+    if (!validationResult.valid) {
+      showStatus(validationResult.message, 'error');
+      return;
+    }
+    
+    // 保存中状態
+    tr.classList.add('row-saving');
+    const saveBtn = tr.querySelector('.btn-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+    
+    google.script.run
+      .withSuccessHandler(function(updatedRow) {
+        onRowSaved(updatedRow, tr, saveBtn);
+      })
+      .withFailureHandler(function(error) {
+        onSaveError(error, tr, saveBtn);
+      })
+      .updateRow(currentDate, payload);
+  }
+  
+  function onRowSaved(updatedRow, tr, saveBtn) {
+    // 行を更新
+    updateRowDisplay(tr, updatedRow);
+    
+    // 状態を戻す
+    tr.classList.remove('row-saving');
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存';
+    
+    // ハイライトアニメーション
+    tr.classList.add('row-updated');
+    setTimeout(() => tr.classList.remove('row-updated'), 1000);
+    
+    showStatus('保存しました', 'success', 2000);
+  }
+  
+  function onSaveError(error, tr, saveBtn) {
+    tr.classList.remove('row-saving');
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存';
+    showStatus('エラー: ' + error.message, 'error');
+  }
+  
+  function updateRowDisplay(tr, row) {
+    // 入力値を更新
+    const inputs = tr.querySelectorAll('input');
+    inputs[0].value = row.destination || '';
+    inputs[1].value = row.startTime || '';
+    inputs[2].value = row.endTime || '';
+    inputs[3].value = row.note || '';
+    
+    // クラスを更新
+    tr.className = getRowClass(row);
+  }
+  
+  // ========================================
+  // クライアント側バリデーション
+  // ========================================
+  function validatePayload(payload) {
+    const errors = [];
+    
+    // 時刻形式チェック
+    if (payload.startTime && !isValidTimeFormat(payload.startTime)) {
+      errors.push('出社時間の形式が不正です（例: 9:30 または 09:30）');
+    }
+    
+    if (payload.endTime && !isValidTimeFormat(payload.endTime)) {
+      errors.push('帰社時間の形式が不正です（例: 17:30 または 09:00）');
+    }
+    
+    // 時刻の論理チェック
+    if (payload.startTime && payload.endTime) {
+      const start = normalizeTime(payload.startTime);
+      const end = normalizeTime(payload.endTime);
+      if (start && end && start > end) {
+        errors.push('帰社時間は出社時間より後にしてください');
+      }
+    }
+    
+    if (errors.length > 0) {
+      return { valid: false, message: errors.join('\n') };
+    }
+    return { valid: true, message: '' };
+  }
+  
+  function isValidTimeFormat(timeStr) {
+    if (!timeStr || timeStr.trim() === '') return true;
+    const pattern = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/;
+    return pattern.test(timeStr.trim());
+  }
+  
+  function normalizeTime(timeStr) {
+    if (!timeStr) return '';
+    const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return timeStr;
+    return match[1].padStart(2, '0') + ':' + match[2];
+  }
+  
+  // ========================================
+  // UI ヘルパー
+  // ========================================
+  function showLoading(show) {
+    if (show) {
+      elements.loading.classList.remove('hidden');
+      elements.tableContainer.classList.add('hidden');
+    } else {
+      elements.loading.classList.add('hidden');
+    }
+  }
+  
+  function showStatus(message, type, autoHideMs) {
+    elements.statusMessage.textContent = message;
+    elements.statusMessage.className = 'status-message ' + type;
+    elements.statusMessage.classList.remove('hidden');
+    
+    if (autoHideMs) {
+      setTimeout(hideStatus, autoHideMs);
+    }
+  }
+  
+  function hideStatus() {
+    elements.statusMessage.classList.add('hidden');
+  }
+  
+  function onError(error) {
+    showLoading(false);
+    showStatus('エラー: ' + error.message, 'error');
+    console.error('Error:', error);
+  }
+  
+})();
+</script>

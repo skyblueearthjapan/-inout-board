@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>外出記入板</title>
+  <?!= include('style'); ?>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <header class="header">
+      <h1 class="title">外出記入板</h1>
+      <div class="header-controls">
+        <div class="date-picker">
+          <label for="dateInput">日付:</label>
+          <input type="date" id="dateInput" />
+        </div>
+        <button id="reloadBtn" class="btn btn-secondary" title="再読込">
+          <span class="btn-icon">↻</span> 再読込
+        </button>
+      </div>
+    </header>
+    
+    <!-- ステータスメッセージ -->
+    <div id="statusMessage" class="status-message hidden"></div>
+    
+    <!-- ローディング -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <span>読み込み中...</span>
+    </div>
+    
+    <!-- メインテーブル -->
+    <div id="tableContainer" class="table-container hidden">
+      <table class="outing-table">
+        <thead>
+          <tr>
+            <th class="col-name">人員</th>
+            <th class="col-destination">行先</th>
+            <th class="col-time">出社時間</th>
+            <th class="col-time">帰社時間</th>
+            <th class="col-note">備考</th>
+            <th class="col-action">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- 動的に生成 -->
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- 凡例 -->
+    <div class="legend">
+      <div class="legend-item">
+        <span class="legend-color legend-out"></span>
+        <span>外出中（出社時間あり・帰社時間なし）</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color legend-back"></span>
+        <span>帰社済み</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 初期日付を埋め込み -->
+  <script>
+    const INITIAL_DATE = '<?= initialDate ?>';
+  </script>
+  
+  <?!= include('ui.js'); ?>
+</body>
+</html>
