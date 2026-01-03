@@ -195,6 +195,104 @@ const SheetService = (function() {
   }
   
   /**
+   * 複数行のデータを一括更新（A+C+B方式のB層）
+   * @param {string} dateString - YYYY-MM-DD形式
+   * @param {Array<Object>} changes - 変更配列 [{rowIndex, destination, startTime, endTime, note}, ...]
+   * @returns {Array<Object>} 更新結果 [{success: boolean, rowIndex: number, row: Object, error: string}, ...]
+   */
+  function applyPatch(dateString, changes) {
+    Logger.log('applyPatch called with ' + changes.length + ' changes');
+
+    const results = [];
+    const config = getConfig();
+    const sheet = getSheet();
+
+    // シートに日付をセット
+    setSheetDate(sheet, dateString);
+    SpreadsheetApp.flush();
+
+    // 各変更を適用
+    changes.forEach(function(change) {
+      try {
+        // バリデーション
+        const validation = Validation.validateRowPayload(change);
+        if (!validation.valid) {
+          results.push({
+            success: false,
+            rowIndex: change.rowIndex,
+            row: null,
+            error: validation.message
+          });
+          return;
+        }
+
+        const rowIndex = change.rowIndex;
+
+        // B〜E列（2〜5列目）を更新
+        if (change.destination !== undefined) {
+          sheet.getRange(rowIndex, 2).setValue(change.destination || '');
+        }
+
+        // 出社日セルを文字列として保存
+        if (change.startTime !== undefined) {
+          const startDateCell = sheet.getRange(rowIndex, 3);
+          startDateCell.setNumberFormat('@');
+          startDateCell.setValue(change.startTime || '');
+        }
+
+        // 帰社時刻セルを文字列として保存
+        if (change.endTime !== undefined) {
+          const normalizedEndTime = Validation.normalizeTime(change.endTime || '');
+          const endTimeCell = sheet.getRange(rowIndex, 4);
+          endTimeCell.setNumberFormat('@');
+          endTimeCell.setValue(normalizedEndTime);
+        }
+
+        if (change.note !== undefined) {
+          sheet.getRange(rowIndex, 5).setValue(change.note || '');
+        }
+
+        SpreadsheetApp.flush();
+
+        // 更新後の行を読み直す
+        const updatedRow = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+
+        results.push({
+          success: true,
+          rowIndex: rowIndex,
+          row: {
+            rowIndex: rowIndex,
+            name: cellToString(updatedRow[0]),
+            destination: cellToString(updatedRow[1]),
+            startTime: cellToDateString(updatedRow[2]),
+            endTime: cellToTimeString(updatedRow[3]),
+            note: cellToString(updatedRow[4]),
+            status: calculateStatus(
+              cellToDateString(updatedRow[2]),
+              cellToTimeString(updatedRow[3])
+            )
+          },
+          error: null
+        });
+
+      } catch (error) {
+        Logger.log('Error updating row ' + change.rowIndex + ': ' + error.message);
+        results.push({
+          success: false,
+          rowIndex: change.rowIndex,
+          row: null,
+          error: error.message
+        });
+      }
+    });
+
+    Logger.log('applyPatch completed: ' + results.filter(r => r.success).length + ' success, ' +
+               results.filter(r => !r.success).length + ' failed');
+
+    return results;
+  }
+
+  /**
    * 1行分のデータを更新
    * @param {string} dateString - YYYY-MM-DD形式
    * @param {Object} payload - 更新データ
@@ -252,7 +350,8 @@ const SheetService = (function() {
   return {
     getConfig: getConfig,
     getDayData: getDayData,
-    updateRow: updateRow
+    updateRow: updateRow,
+    applyPatch: applyPatch
   };
-  
+
 })();
