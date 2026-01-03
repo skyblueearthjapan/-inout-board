@@ -69,23 +69,52 @@ function getDayData(dateString) {
  */
 function updateRow(dateString, payload) {
   const lock = LockService.getDocumentLock();
-  
+
   try {
     // ロック取得（最大10秒待機）
     if (!lock.tryLock(10000)) {
       throw new Error('他のユーザーがデータを更新中です。数秒後に再試行してください。');
     }
-    
+
     // バリデーション
     const validationResult = Validation.validateRowPayload(payload);
     if (!validationResult.valid) {
       throw new Error(validationResult.message);
     }
-    
+
     // 更新実行
     const result = SheetService.updateRow(dateString, payload);
     return result;
-    
+
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * 複数行のデータを一括更新（A+C+B方式のB層API）
+ * @param {string} dateString - 日付文字列（YYYY-MM-DD形式）
+ * @param {Array<Object>} changes - 変更配列
+ * @returns {Array<Object>} 更新結果
+ */
+function api_applyPatch(dateString, changes) {
+  const lock = LockService.getDocumentLock();
+
+  try {
+    // ロック取得（最大15秒待機、複数行更新のため長め）
+    if (!lock.tryLock(15000)) {
+      throw new Error('他のユーザーがデータを更新中です。数秒後に再試行してください。');
+    }
+
+    Logger.log('api_applyPatch called with ' + changes.length + ' changes');
+
+    // 一括更新実行
+    const results = SheetService.applyPatch(dateString, changes);
+    return results;
+
+  } catch (error) {
+    Logger.log('api_applyPatch error: ' + error.message);
+    throw error;
   } finally {
     lock.releaseLock();
   }

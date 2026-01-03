@@ -83,6 +83,56 @@ body {
 }
 
 /* ========================================
+   保存ステータス
+   ======================================== */
+.save-status {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.save-status-saved {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #c8e6c9;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.save-status-saving {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #bbdefb;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.save-status-unsaved {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: #ffe0b2;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.save-status-error {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #ffcdd2;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.save-status-offline {
+  background-color: rgba(158, 158, 158, 0.2);
+  color: #e0e0e0;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ========================================
    ボタン
    ======================================== */
 .btn {

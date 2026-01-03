@@ -1,7 +1,347 @@
 <script>
 /**
  * 外出記入板 フロントエンドJS
+ * A+C+B 保存方式実装
+ * A: Draft (localStorage即座保存)
+ * C: ChangeQueue (変更キュー)
+ * B: Backend (遅延サーバー保存)
  */
+
+// ========================================
+// A層: DraftStore (ローカル保存)
+// ========================================
+const DraftStore = (function() {
+  const STORAGE_KEY_PREFIX = 'outingBoard_draft_';
+  const STORAGE_VERSION = 'v1';
+
+  function getStorageKey(date) {
+    return `${STORAGE_KEY_PREFIX}${STORAGE_VERSION}_${date}`;
+  }
+
+  function saveDraft(date, rowIndex, fieldName, value) {
+    try {
+      const key = getStorageKey(date);
+      const drafts = loadAllDrafts(date);
+
+      if (!drafts[rowIndex]) {
+        drafts[rowIndex] = {};
+      }
+
+      drafts[rowIndex][fieldName] = value;
+      drafts[rowIndex]._timestamp = Date.now();
+
+      localStorage.setItem(key, JSON.stringify(drafts));
+      return true;
+    } catch (e) {
+      console.error('Failed to save draft:', e);
+      return false;
+    }
+  }
+
+  function loadAllDrafts(date) {
+    try {
+      const key = getStorageKey(date);
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : {};
+    } catch (e) {
+      console.error('Failed to load drafts:', e);
+      return {};
+    }
+  }
+
+  function loadRowDraft(date, rowIndex) {
+    const drafts = loadAllDrafts(date);
+    return drafts[rowIndex] || null;
+  }
+
+  function clearDraft(date, rowIndex) {
+    try {
+      const key = getStorageKey(date);
+      const drafts = loadAllDrafts(date);
+      delete drafts[rowIndex];
+
+      if (Object.keys(drafts).length === 0) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(drafts));
+      }
+      return true;
+    } catch (e) {
+      console.error('Failed to clear draft:', e);
+      return false;
+    }
+  }
+
+  function clearAllDrafts(date) {
+    try {
+      const key = getStorageKey(date);
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.error('Failed to clear all drafts:', e);
+      return false;
+    }
+  }
+
+  function hasDrafts(date) {
+    const drafts = loadAllDrafts(date);
+    return Object.keys(drafts).length > 0;
+  }
+
+  return {
+    saveDraft,
+    loadAllDrafts,
+    loadRowDraft,
+    clearDraft,
+    clearAllDrafts,
+    hasDrafts
+  };
+})();
+
+// ========================================
+// C層: ChangeQueue (変更キュー)
+// ========================================
+const ChangeQueue = (function() {
+  let queue = {}; // {rowIndex: {destination: 'xxx', startTime: 'xxx', ...}}
+  let pendingSave = null;
+
+  function addChange(rowIndex, fieldName, value) {
+    if (!queue[rowIndex]) {
+      queue[rowIndex] = { rowIndex };
+    }
+    queue[rowIndex][fieldName] = value;
+  }
+
+  function getChanges() {
+    return Object.values(queue);
+  }
+
+  function hasChanges() {
+    return Object.keys(queue).length > 0;
+  }
+
+  function clearChanges() {
+    queue = {};
+  }
+
+  function clearRowChanges(rowIndex) {
+    delete queue[rowIndex];
+  }
+
+  function setPendingSave(timeoutId) {
+    if (pendingSave) {
+      clearTimeout(pendingSave);
+    }
+    pendingSave = timeoutId;
+  }
+
+  function clearPendingSave() {
+    if (pendingSave) {
+      clearTimeout(pendingSave);
+      pendingSave = null;
+    }
+  }
+
+  return {
+    addChange,
+    getChanges,
+    hasChanges,
+    clearChanges,
+    clearRowChanges,
+    setPendingSave,
+    clearPendingSave
+  };
+})();
+
+// ========================================
+// SaveManager: A+C+B 統合管理
+// ========================================
+const SaveManager = (function() {
+  const AUTO_SAVE_DELAY = 3000; // 3秒
+  const PERIODIC_SAVE_INTERVAL = 30000; // 30秒
+  let periodicSaveTimer = null;
+  let saveStatus = 'saved'; // 'saved' | 'saving' | 'unsaved' | 'error' | 'offline'
+  let isSaving = false;
+
+  function init() {
+    // 定期保存タイマー開始
+    startPeriodicSave();
+
+    // ページ離脱時に保存
+    window.addEventListener('beforeunload', function(e) {
+      if (ChangeQueue.hasChanges()) {
+        flushChanges();
+        // ブラウザに警告を表示
+        e.preventDefault();
+        e.returnValue = '保存されていない変更があります';
+      }
+    });
+
+    // オンライン/オフライン検出
+    window.addEventListener('online', function() {
+      console.log('オンラインに復帰しました');
+      updateSaveStatus('unsaved');
+      if (ChangeQueue.hasChanges()) {
+        scheduleSave();
+      }
+    });
+
+    window.addEventListener('offline', function() {
+      console.log('オフラインになりました');
+      updateSaveStatus('offline');
+    });
+  }
+
+  function startPeriodicSave() {
+    if (periodicSaveTimer) {
+      clearInterval(periodicSaveTimer);
+    }
+    periodicSaveTimer = setInterval(function() {
+      if (ChangeQueue.hasChanges() && !isSaving) {
+        console.log('定期保存を実行します');
+        flushChanges();
+      }
+    }, PERIODIC_SAVE_INTERVAL);
+  }
+
+  function onInputChange(date, rowIndex, fieldName, value) {
+    // A層: 即座にlocalStorageに保存
+    DraftStore.saveDraft(date, rowIndex, fieldName, value);
+
+    // C層: 変更キューに追加
+    ChangeQueue.addChange(rowIndex, fieldName, value);
+
+    // 保存スケジュール
+    updateSaveStatus('unsaved');
+    scheduleSave();
+  }
+
+  function scheduleSave() {
+    // 既存のタイマーをキャンセル
+    ChangeQueue.clearPendingSave();
+
+    // 新しいタイマーをセット（デバウンス）
+    const timeoutId = setTimeout(function() {
+      flushChanges();
+    }, AUTO_SAVE_DELAY);
+
+    ChangeQueue.setPendingSave(timeoutId);
+  }
+
+  function flushChanges() {
+    if (!ChangeQueue.hasChanges() || isSaving) {
+      return;
+    }
+
+    // オフライン時は保存しない
+    if (!navigator.onLine) {
+      updateSaveStatus('offline');
+      return;
+    }
+
+    isSaving = true;
+    updateSaveStatus('saving');
+
+    const changes = ChangeQueue.getChanges();
+    const date = window.currentDate; // グローバルから取得
+
+    console.log('サーバーに保存します:', changes);
+
+    // B層: サーバーに一括送信
+    google.script.run
+      .withSuccessHandler(function(results) {
+        onSaveSuccess(results);
+      })
+      .withFailureHandler(function(error) {
+        onSaveError(error);
+      })
+      .api_applyPatch(date, changes);
+  }
+
+  function onSaveSuccess(results) {
+    console.log('保存成功:', results);
+    isSaving = false;
+
+    // 保存成功した行のドラフトをクリア
+    results.forEach(function(result) {
+      if (result.success) {
+        DraftStore.clearDraft(window.currentDate, result.rowIndex);
+        ChangeQueue.clearRowChanges(result.rowIndex);
+
+        // UI更新
+        const tr = document.querySelector(`tr[data-row-index="${result.rowIndex}"]`);
+        if (tr && result.row) {
+          window.updateRowDisplay(tr, result.row);
+        }
+      }
+    });
+
+    // すべて成功したらキューをクリア
+    if (results.every(r => r.success)) {
+      ChangeQueue.clearChanges();
+      updateSaveStatus('saved');
+    } else {
+      updateSaveStatus('error');
+    }
+  }
+
+  function onSaveError(error) {
+    console.error('保存エラー:', error);
+    isSaving = false;
+    updateSaveStatus('error');
+
+    // リトライ（30秒後）
+    setTimeout(function() {
+      if (ChangeQueue.hasChanges()) {
+        flushChanges();
+      }
+    }, 30000);
+  }
+
+  function updateSaveStatus(status) {
+    saveStatus = status;
+
+    const statusEl = document.getElementById('saveStatus');
+    if (!statusEl) return;
+
+    const messages = {
+      'saved': '保存済み',
+      'saving': '保存中...',
+      'unsaved': '未保存',
+      'error': '保存失敗',
+      'offline': 'オフライン'
+    };
+
+    const classes = {
+      'saved': 'save-status-saved',
+      'saving': 'save-status-saving',
+      'unsaved': 'save-status-unsaved',
+      'error': 'save-status-error',
+      'offline': 'save-status-offline'
+    };
+
+    statusEl.textContent = messages[status] || '';
+    statusEl.className = 'save-status ' + (classes[status] || '');
+  }
+
+  function manualSave() {
+    if (ChangeQueue.hasChanges()) {
+      ChangeQueue.clearPendingSave();
+      flushChanges();
+    }
+  }
+
+  return {
+    init,
+    onInputChange,
+    manualSave,
+    flushChanges
+  };
+})();
+
+// ========================================
+// メインアプリケーション
+// ========================================
 (function() {
   'use strict';
 
@@ -42,10 +382,17 @@
     // 日付入力を初期化
     elements.dateInput.value = currentDate;
 
+    // グローバルアクセス用
+    window.currentDate = currentDate;
+    window.updateRowDisplay = updateRowDisplay;
+
     // イベントリスナー
     elements.dateInput.addEventListener('change', onDateChange);
     elements.reloadBtn.addEventListener('click', loadData);
     elements.clearAllBtn.addEventListener('click', clearAllRows);
+
+    // A+C+B SaveManager初期化
+    SaveManager.init();
 
     // 初期データ読み込み
     loadData();
@@ -67,8 +414,54 @@
   function onDataLoaded(data) {
     currentData = data;
     renderTable(data.rows);
+
+    // クラッシュリカバリ: ドラフトを復元
+    restoreDrafts(data.rows);
+
     showLoading(false);
     showStatus('データを読み込みました', 'success', 2000);
+  }
+
+  // ========================================
+  // クラッシュリカバリ: ドラフト復元
+  // ========================================
+  function restoreDrafts(rows) {
+    const drafts = DraftStore.loadAllDrafts(currentDate);
+
+    rows.forEach(function(row) {
+      const draft = drafts[row.rowIndex];
+      if (draft) {
+        const tr = elements.tableBody.querySelector(`tr[data-row-index="${row.rowIndex}"]`);
+        if (tr) {
+          const inputs = tr.querySelectorAll('input');
+
+          // ドラフトの値で上書き
+          if (draft.destination !== undefined) {
+            inputs[0].value = draft.destination;
+            ChangeQueue.addChange(row.rowIndex, 'destination', draft.destination);
+          }
+          if (draft.startTime !== undefined) {
+            inputs[1].value = draft.startTime;
+            ChangeQueue.addChange(row.rowIndex, 'startTime', draft.startTime);
+          }
+          if (draft.endTime !== undefined) {
+            inputs[2].value = draft.endTime;
+            ChangeQueue.addChange(row.rowIndex, 'endTime', draft.endTime);
+          }
+          if (draft.note !== undefined) {
+            inputs[3].value = draft.note;
+            ChangeQueue.addChange(row.rowIndex, 'note', draft.note);
+          }
+
+          console.log(`ドラフトを復元しました: 行${row.rowIndex}`);
+        }
+      }
+    });
+
+    // ドラフトがある場合は自動保存をスケジュール
+    if (ChangeQueue.hasChanges()) {
+      SaveManager.flushChanges();
+    }
   }
 
   // ========================================
@@ -76,6 +469,7 @@
   // ========================================
   function onDateChange(e) {
     currentDate = e.target.value;
+    window.currentDate = currentDate; // グローバル更新
     loadData();
   }
 
@@ -134,7 +528,10 @@
     const saveBtn = document.createElement('button');
     saveBtn.className = 'save-btn';
     saveBtn.textContent = '保存';
-    saveBtn.addEventListener('click', () => saveRow(row.rowIndex));
+    saveBtn.addEventListener('click', () => {
+      // A+C+B: 即座に保存（デバウンスをスキップ）
+      SaveManager.manualSave();
+    });
     actionTd.appendChild(saveBtn);
 
     const clearBtn = document.createElement('button');
@@ -163,12 +560,17 @@
       input.placeholder = placeholder;
     }
 
-    // Enterキーで保存
+    // A+C+B: 入力時に即座に保存（auto-save）
+    input.addEventListener('input', (e) => {
+      const row = e.target.closest('tr');
+      const rowIndex = parseInt(row.dataset.rowIndex);
+      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
+    });
+
+    // Enterキーで即座に保存
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        const row = e.target.closest('tr');
-        const rowIndex = parseInt(row.dataset.rowIndex);
-        saveRow(rowIndex);
+        SaveManager.manualSave();
       }
     });
 
@@ -188,12 +590,23 @@
     input.name = fieldName;
     input.value = value || '';
 
-    // Enterキーで保存
+    // A+C+B: 入力時に即座に保存（auto-save）
+    input.addEventListener('input', (e) => {
+      const row = e.target.closest('tr');
+      const rowIndex = parseInt(row.dataset.rowIndex);
+      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
+    });
+
+    input.addEventListener('change', (e) => {
+      const row = e.target.closest('tr');
+      const rowIndex = parseInt(row.dataset.rowIndex);
+      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
+    });
+
+    // Enterキーで即座に保存
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        const row = e.target.closest('tr');
-        const rowIndex = parseInt(row.dataset.rowIndex);
-        saveRow(rowIndex);
+        SaveManager.manualSave();
       }
     });
 
@@ -213,12 +626,23 @@
     input.name = fieldName;
     input.value = value || '';
 
-    // Enterキーで保存
+    // A+C+B: 入力時に即座に保存（auto-save）
+    input.addEventListener('input', (e) => {
+      const row = e.target.closest('tr');
+      const rowIndex = parseInt(row.dataset.rowIndex);
+      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
+    });
+
+    input.addEventListener('change', (e) => {
+      const row = e.target.closest('tr');
+      const rowIndex = parseInt(row.dataset.rowIndex);
+      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
+    });
+
+    // Enterキーで即座に保存
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        const row = e.target.closest('tr');
-        const rowIndex = parseInt(row.dataset.rowIndex);
-        saveRow(rowIndex);
+        SaveManager.manualSave();
       }
     });
 
@@ -302,45 +726,33 @@
     elements.clearAllBtn.disabled = true;
     elements.clearAllBtn.textContent = 'クリア中...';
 
-    let completed = 0;
-    const total = rows.length;
-
+    // A+C+B: すべての行の値をクリア
     rows.forEach((tr) => {
       const rowIndex = parseInt(tr.dataset.rowIndex);
+      const inputs = tr.querySelectorAll('input');
 
-      // 空のデータで保存
-      const payload = {
-        rowIndex: rowIndex,
-        destination: '',
-        startTime: '',
-        endTime: '',
-        note: ''
-      };
+      // 入力フィールドを空にする
+      inputs[0].value = '';  // 行先
+      inputs[1].value = '';  // 出社日
+      inputs[2].value = '';  // 帰社時刻
+      inputs[3].value = '';  // 備考
 
-      google.script.run
-        .withSuccessHandler(function(updatedRow) {
-          completed++;
-          updateRowDisplay(tr, updatedRow);
-          tr.className = getRowClass(updatedRow);
-
-          if (completed === total) {
-            elements.clearAllBtn.disabled = false;
-            elements.clearAllBtn.textContent = 'すべてクリア';
-            showStatus('すべての行をクリアしました', 'success', 2000);
-          }
-        })
-        .withFailureHandler(function(error) {
-          completed++;
-          console.error('Error clearing row:', error);
-
-          if (completed === total) {
-            elements.clearAllBtn.disabled = false;
-            elements.clearAllBtn.textContent = 'すべてクリア';
-            showStatus('一部の行のクリアに失敗しました', 'error');
-          }
-        })
-        .updateRow(currentDate, payload);
+      // A+C+B: 変更をキューに追加
+      SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
+      SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
+      SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
+      SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
     });
+
+    // 即座に保存
+    SaveManager.manualSave();
+
+    // ボタンを元に戻す
+    setTimeout(() => {
+      elements.clearAllBtn.disabled = false;
+      elements.clearAllBtn.textContent = 'すべてクリア';
+      showStatus('すべての行をクリアしました', 'success', 2000);
+    }, 1000);
   }
 
   // ========================================
@@ -361,97 +773,19 @@
     inputs[2].value = '';  // 帰社時刻
     inputs[3].value = '';  // 備考
 
-    // 空のデータで保存
-    const payload = {
-      rowIndex: rowIndex,
-      destination: '',
-      startTime: '',
-      endTime: '',
-      note: ''
-    };
+    // A+C+B: 空の値で各フィールドを更新
+    SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
+    SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
+    SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
+    SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
 
-    // 保存中状態
-    tr.classList.add('row-saving');
-    const saveBtn = tr.querySelector('.save-btn');
-    const clearBtn = tr.querySelector('.clear-btn');
-    saveBtn.disabled = true;
-    clearBtn.disabled = true;
-
-    google.script.run
-      .withSuccessHandler(function(updatedRow) {
-        onRowSaved(updatedRow, tr, saveBtn);
-        clearBtn.disabled = false;
-      })
-      .withFailureHandler(function(error) {
-        onSaveError(error, tr, saveBtn);
-        clearBtn.disabled = false;
-      })
-      .updateRow(currentDate, payload);
+    // 即座に保存
+    SaveManager.manualSave();
   }
 
   // ========================================
-  // 行保存
+  // 行表示更新（A+C+B SaveManagerから使用）
   // ========================================
-  function saveRow(rowIndex) {
-    const tr = elements.tableBody.querySelector(`tr[data-row-index="${rowIndex}"]`);
-    if (!tr) return;
-
-    // 入力値を取得
-    const inputs = tr.querySelectorAll('input');
-    const payload = {
-      rowIndex: rowIndex,
-      destination: inputs[0].value,
-      startTime: inputs[1].value,
-      endTime: inputs[2].value,
-      note: inputs[3].value
-    };
-
-    // クライアント側バリデーション
-    const validationResult = validatePayload(payload);
-    if (!validationResult.valid) {
-      showStatus(validationResult.message, 'error');
-      return;
-    }
-
-    // 保存中状態
-    tr.classList.add('row-saving');
-    const saveBtn = tr.querySelector('.save-btn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = '保存中...';
-
-    google.script.run
-      .withSuccessHandler(function(updatedRow) {
-        onRowSaved(updatedRow, tr, saveBtn);
-      })
-      .withFailureHandler(function(error) {
-        onSaveError(error, tr, saveBtn);
-      })
-      .updateRow(currentDate, payload);
-  }
-
-  function onRowSaved(updatedRow, tr, saveBtn) {
-    // 行を更新
-    updateRowDisplay(tr, updatedRow);
-
-    // 状態を戻す
-    tr.classList.remove('row-saving');
-    saveBtn.disabled = false;
-    saveBtn.textContent = '保存';
-
-    // ハイライトアニメーション
-    tr.classList.add('row-updated');
-    setTimeout(() => tr.classList.remove('row-updated'), 1000);
-
-    showStatus('保存しました', 'success', 2000);
-  }
-
-  function onSaveError(error, tr, saveBtn) {
-    tr.classList.remove('row-saving');
-    saveBtn.disabled = false;
-    saveBtn.textContent = '保存';
-    showStatus('エラー: ' + error.message, 'error');
-  }
-
   function updateRowDisplay(tr, row) {
     // 入力値を更新
     const inputs = tr.querySelectorAll('input');
