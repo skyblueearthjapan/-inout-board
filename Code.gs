@@ -14,6 +14,9 @@
  * @param {Object} e - イベントオブジェクト
  * @returns {HtmlOutput}
  */
+/** 社内ポータルサイトURL（全画面共通） */
+var PORTAL_URL = 'https://script.google.com/a/macros/lineworks-local.info/s/AKfycbx2eyJMOYP9o--GPBuhY-pj071IIR6Kqb_0xALwwNzdLQZux0dIAlL3P9EoCucnzXA/exec';
+
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('index');
   
@@ -23,6 +26,7 @@ function doGet(e) {
     : Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
   
   template.initialDate = initialDate;
+  template.PORTAL_URL = PORTAL_URL;
   
   return template.evaluate()
     .setTitle('外出記入板')
