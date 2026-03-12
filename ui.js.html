@@ -787,16 +787,21 @@ const SaveManager = (function() {
       document.getElementById('clockM').addEventListener('click', function() { switchMode('minute'); });
 
       // フッターボタン
-      document.getElementById('clockCancel').addEventListener('click', close);
-      document.getElementById('clockOk').addEventListener('click', function() {
+      document.getElementById('clockCancel').addEventListener('click', function(e) {
+        e.stopPropagation();
+        close();
+      });
+      document.getElementById('clockOk').addEventListener('click', function(e) {
+        e.stopPropagation();
         if (onConfirm) {
-          const h = String(selectedHour).padStart(2, '0');
-          const m = String(selectedMinute).padStart(2, '0');
+          var h = String(selectedHour).padStart(2, '0');
+          var m = String(selectedMinute).padStart(2, '0');
           onConfirm(h + ':' + m);
         }
         close();
       });
-      document.getElementById('clockClear').addEventListener('click', function() {
+      document.getElementById('clockClear').addEventListener('click', function(e) {
+        e.stopPropagation();
         if (onClear) { onClear(); }
         close();
       });
@@ -932,6 +937,7 @@ const SaveManager = (function() {
     }
 
     function onNumberClick(e) {
+      e.stopPropagation();
       var val = parseInt(e.target.dataset.val);
       if (mode === 'hour') {
         selectedHour = val;
