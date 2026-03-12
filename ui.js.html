@@ -216,21 +216,6 @@ const SaveManager = (function() {
     scheduleSave();
   }
 
-  /** 所在地の値から行クラスを即座に反映 */
-  function updateRowColorByLocation(rowIndex, location) {
-    var tr = elements.tableBody.querySelector('tr[data-row-index="' + rowIndex + '"]');
-    if (!tr) return;
-
-    var name = tr.querySelector('.name-cell') ? tr.querySelector('.name-cell').textContent.trim() : '';
-    if (!name) {
-      tr.className = 'row-empty';
-      return;
-    }
-
-    var loc = (location || '').trim();
-    tr.className = LOC_ROW_CLASS[loc] || 'row-none';
-  }
-
   function scheduleSave() {
     // 既存のタイマーをキャンセル
     ChangeQueue.clearPendingSave();
@@ -973,6 +958,21 @@ const SaveManager = (function() {
     // 所在地に応じた色分け
     var loc = (row.location || '').trim();
     return LOC_ROW_CLASS[loc] || 'row-none';
+  }
+
+  /** 所在地の値から行クラスを即座に反映（楽観的UI） */
+  function updateRowColorByLocation(rowIndex, location) {
+    var tr = elements.tableBody.querySelector('tr[data-row-index="' + rowIndex + '"]');
+    if (!tr) return;
+
+    var name = tr.querySelector('.name-cell') ? tr.querySelector('.name-cell').textContent.trim() : '';
+    if (!name) {
+      tr.className = 'row-empty';
+      return;
+    }
+
+    var loc = (location || '').trim();
+    tr.className = LOC_ROW_CLASS[loc] || 'row-none';
   }
 
   // ========================================
