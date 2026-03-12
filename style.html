@@ -554,9 +554,12 @@ body {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 12px 20px;
   border-radius: 8px;
   transition: background 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
 
 .clock-footer-btn:hover {
@@ -605,21 +608,21 @@ body {
    ======================================== */
 .row-out td,
 .row-out th {
-  background: #fff3e0 !important; /* 薄いオレンジ */
+  background: #ffedd5 !important; /* 薄いオレンジ（所在地「外出」と同トーン） */
 }
 
 .row-out td:focus-within {
-  background: #ffe8c2 !important;
+  background: #fed7aa !important;
   box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
 .row-back td,
 .row-back th {
-  background: #e8f5e9; /* 薄い緑 */
+  background: #dcfce7 !important; /* 薄い緑（所在地「新工場」と同トーン） */
 }
 
 .row-back td:focus-within {
-  background: #d4edd7 !important;
+  background: #bbf7d0 !important;
   box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
@@ -724,11 +727,11 @@ body {
 }
 
 .legend-out {
-  background-color: #fff3e0;
+  background-color: #ffedd5;
 }
 
 .legend-back {
-  background-color: #e8f5e9;
+  background-color: #dcfce7;
 }
 
 /* ========================================
