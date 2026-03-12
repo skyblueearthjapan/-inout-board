@@ -179,3 +179,59 @@ function migrateAddLocationColumn() {
 
   return 'マイグレーション完了';
 }
+
+/**
+ * 所在地列と行先列を入れ替えるマイグレーション
+ *
+ * 変更前: A:人員 B:行先 C:所在地 D:出社日 E:帰社時刻 F:備考
+ * 変更後: A:人員 B:所在地 C:行先 D:出社日 E:帰社時刻 F:備考
+ *
+ * 実行すると：
+ * 1. ヘッダー行（3行目）のB列とC列を入れ替え
+ * 2. データ行（4〜19行目）のB列とC列を入れ替え
+ *
+ * ※ B3が既に「所在地」の場合はスキップします
+ */
+function migrateSwapLocationDestination() {
+  const props = PropertiesService.getScriptProperties();
+  const spreadsheetId = props.getProperty('SPREADSHEET_ID');
+  const sheetName = props.getProperty('SHEET_NAME') || '外出ホワイトボード';
+
+  if (!spreadsheetId || spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
+    throw new Error('SPREADSHEET_ID が設定されていません。先に initializeProperties を実行してください。');
+  }
+
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('シート「' + sheetName + '」が見つかりません。');
+  }
+
+  // B3が既に「所在地」なら入れ替え済み
+  const headerB = String(sheet.getRange('B3').getValue()).trim();
+  if (headerB === '所在地') {
+    Logger.log('B3は既に「所在地」です。入れ替え済みのためスキップします。');
+    return '既に入れ替え済みです';
+  }
+
+  // ヘッダー入れ替え
+  sheet.getRange('B3').setValue('所在地');
+  sheet.getRange('C3').setValue('行先');
+  Logger.log('ヘッダーを入れ替えました: B3=所在地, C3=行先');
+
+  // データ行（4〜19行目）のB列とC列を入れ替え
+  var dataRange = sheet.getRange('B4:C19');
+  var values = dataRange.getValues();
+
+  var swapped = values.map(function(row) {
+    return [row[1], row[0]];
+  });
+
+  dataRange.setValues(swapped);
+  Logger.log('データ行（4〜19行目）のB列とC列を入れ替えました。');
+
+  SpreadsheetApp.flush();
+  Logger.log('マイグレーション完了: 所在地↔行先 列入れ替え');
+
+  return 'マイグレーション完了';
+}

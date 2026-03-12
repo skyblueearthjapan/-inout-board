@@ -169,11 +169,11 @@ const SheetService = (function() {
     const startRow = dataRange.getRow();
     
     // OutingRow配列に変換
-    // 列構成: A:人員 B:行先 C:所在地 D:出社日 E:帰社時刻 F:備考
+    // 列構成: A:人員 B:所在地 C:行先 D:出社日 E:帰社時刻 F:備考
     const rows = values.map((row, index) => {
       const name = cellToString(row[0]);
-      const destination = cellToString(row[1]);
-      const location = row.length > 2 ? cellToString(row[2]) : '';  // C列：所在地
+      const location = row.length > 1 ? cellToString(row[1]) : '';       // B列：所在地
+      const destination = row.length > 2 ? cellToString(row[2]) : '';    // C列：行先
       const startTime = row.length > 3 ? cellToDateString(row[3]) : '';  // D列：出社日
       const endTime = row.length > 4 ? cellToTimeString(row[4]) : '';    // E列：帰社時刻
       const note = row.length > 5 ? cellToString(row[5]) : '';           // F列：備考
@@ -232,13 +232,13 @@ const SheetService = (function() {
         const rowIndex = change.rowIndex;
 
         // B〜F列（2〜6列目）を更新
-        // B:行先, C:所在地, D:出社日, E:帰社時刻, F:備考
-        if (change.destination !== undefined) {
-          sheet.getRange(rowIndex, 2).setValue(change.destination || '');
+        // B:所在地, C:行先, D:出社日, E:帰社時刻, F:備考
+        if (change.location !== undefined) {
+          sheet.getRange(rowIndex, 2).setValue(change.location || '');
         }
 
-        if (change.location !== undefined) {
-          sheet.getRange(rowIndex, 3).setValue(change.location || '');
+        if (change.destination !== undefined) {
+          sheet.getRange(rowIndex, 3).setValue(change.destination || '');
         }
 
         // 出社日セルを文字列として保存
@@ -271,8 +271,8 @@ const SheetService = (function() {
           row: {
             rowIndex: rowIndex,
             name: cellToString(updatedRow[0]),
-            destination: cellToString(updatedRow[1]),
-            location: cellToString(updatedRow[2]),
+            location: cellToString(updatedRow[1]),
+            destination: cellToString(updatedRow[2]),
             startTime: cellToDateString(updatedRow[3]),
             endTime: cellToTimeString(updatedRow[4]),
             note: cellToString(updatedRow[5]),
@@ -318,11 +318,11 @@ const SheetService = (function() {
     const rowIndex = payload.rowIndex;
 
     // B〜F列（2〜6列目）を更新
-    // B:行先, C:所在地, D:出社日, E:帰社時刻, F:備考
+    // B:所在地, C:行先, D:出社日, E:帰社時刻, F:備考
     const normalizedEndTime = Validation.normalizeTime(payload.endTime || '');
 
-    sheet.getRange(rowIndex, 2).setValue(payload.destination || '');
-    sheet.getRange(rowIndex, 3).setValue(payload.location || '');
+    sheet.getRange(rowIndex, 2).setValue(payload.location || '');
+    sheet.getRange(rowIndex, 3).setValue(payload.destination || '');
 
     // 出社日セルを文字列として保存（日付変換を防ぐ）
     const startDateCell = sheet.getRange(rowIndex, 4);
@@ -344,8 +344,8 @@ const SheetService = (function() {
     return {
       rowIndex: rowIndex,
       name: cellToString(updatedRow[0]),
-      destination: cellToString(updatedRow[1]),
-      location: cellToString(updatedRow[2]),
+      location: cellToString(updatedRow[1]),
+      destination: cellToString(updatedRow[2]),
       startTime: cellToDateString(updatedRow[3]),
       endTime: cellToTimeString(updatedRow[4]),
       note: cellToString(updatedRow[5]),
