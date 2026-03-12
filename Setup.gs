@@ -235,3 +235,58 @@ function migrateSwapLocationDestination() {
 
   return 'マイグレーション完了';
 }
+
+/**
+ * 内線番号列（C列）を挿入するマイグレーション
+ *
+ * 変更前: A:人員 B:所在地 C:行先 D:出社日 E:帰社時刻 F:備考
+ * 変更後: A:人員 B:所在地 C:内線 D:行先 E:出社日 F:帰社時刻 G:備考
+ *
+ * 実行すると：
+ * 1. C列の前に新しい列を挿入（既存C〜F列がD〜G列にシフト）
+ * 2. ヘッダー行（3行目）のC列に「内線」を設定
+ * 3. ScriptProperties の HEADER_RANGE を A3:G3 に更新
+ * 4. ScriptProperties の DATA_RANGE を A4:G19 に更新
+ *
+ * ※ C3が既に「内線」の場合はスキップします
+ */
+function migrateAddExtensionColumn() {
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = props.getProperty('SPREADSHEET_ID');
+  var sheetName = props.getProperty('SHEET_NAME') || '外出ホワイトボード';
+
+  if (!spreadsheetId || spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
+    throw new Error('SPREADSHEET_ID が設定されていません。先に initializeProperties を実行してください。');
+  }
+
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('シート「' + sheetName + '」が見つかりません。');
+  }
+
+  // C3が既に「内線」なら列挿入をスキップ
+  var headerC = String(sheet.getRange('C3').getValue()).trim();
+  if (headerC === '内線') {
+    Logger.log('C3は既に「内線」です。列挿入をスキップします。');
+  } else {
+    // C列の前に1列挿入（既存C〜F列 → D〜G列にシフト）
+    sheet.insertColumnBefore(3);
+    Logger.log('C列を挿入しました（既存C〜F列がD〜G列にシフト）。');
+
+    // ヘッダーを設定
+    sheet.getRange('C3').setValue('内線');
+    Logger.log('C3に「内線」ヘッダーを設定しました。');
+  }
+
+  // ScriptProperties を更新
+  props.setProperty('HEADER_RANGE', 'A3:G3');
+  props.setProperty('DATA_RANGE', 'A4:G19');
+
+  Logger.log('ScriptProperties を更新しました:');
+  Logger.log('  HEADER_RANGE: A3:G3');
+  Logger.log('  DATA_RANGE: A4:G19');
+  Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
+
+  return 'マイグレーション完了';
+}

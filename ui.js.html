@@ -452,8 +452,12 @@ const SaveManager = (function() {
           const inputs = tr.querySelectorAll('input');
 
           // ドラフトの値で上書き
+          if (draft.extension !== undefined) {
+            inputs[0].value = draft.extension;
+            ChangeQueue.addChange(row.rowIndex, 'extension', draft.extension);
+          }
           if (draft.destination !== undefined) {
-            inputs[0].value = draft.destination;
+            inputs[1].value = draft.destination;
             ChangeQueue.addChange(row.rowIndex, 'destination', draft.destination);
           }
           if (draft.location !== undefined) {
@@ -463,17 +467,17 @@ const SaveManager = (function() {
             ChangeQueue.addChange(row.rowIndex, 'location', draft.location);
           }
           if (draft.startTime !== undefined) {
-            inputs[1].value = draft.startTime;
+            inputs[2].value = draft.startTime;
             ChangeQueue.addChange(row.rowIndex, 'startTime', draft.startTime);
           }
           if (draft.endTime !== undefined) {
-            inputs[2].value = draft.endTime;
+            inputs[3].value = draft.endTime;
             var timeDisp = tr.querySelector('.time-display');
             if (timeDisp) { timeDisp.textContent = draft.endTime; }
             ChangeQueue.addChange(row.rowIndex, 'endTime', draft.endTime);
           }
           if (draft.note !== undefined) {
-            inputs[3].value = draft.note;
+            inputs[4].value = draft.note;
             ChangeQueue.addChange(row.rowIndex, 'note', draft.note);
           }
 
@@ -535,6 +539,9 @@ const SaveManager = (function() {
 
     // 所在地（トグルボタン）
     tr.appendChild(createLocationCell(row.location));
+
+    // 内線番号（3桁）
+    tr.appendChild(createInputCell('extension', row.extension || '', '', 'ext-cell'));
 
     // 行先（プレースホルダなし、cell-input + destination）
     tr.appendChild(createInputCell('destination', row.destination, '', 'destination'));
@@ -1008,10 +1015,11 @@ const SaveManager = (function() {
       const inputs = tr.querySelectorAll('input');
 
       // 入力フィールドを空にする
-      inputs[0].value = '';  // 行先
-      inputs[1].value = '';  // 出社日
-      inputs[2].value = '';  // 帰社時刻
-      inputs[3].value = '';  // 備考
+      inputs[0].value = '';  // 内線
+      inputs[1].value = '';  // 行先
+      inputs[2].value = '';  // 出社日
+      inputs[3].value = '';  // 帰社時刻
+      inputs[4].value = '';  // 備考
 
       // 時計表示もクリア
       const td1 = tr.querySelector('.time-display');
@@ -1022,6 +1030,7 @@ const SaveManager = (function() {
       if (locBtn) { setLocBtnState(locBtn, ''); }
 
       // A+C+B: 変更をキューに追加
+      SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
@@ -1053,10 +1062,11 @@ const SaveManager = (function() {
 
     // 入力フィールドを空にする
     const inputs = tr.querySelectorAll('input');
-    inputs[0].value = '';  // 行先
-    inputs[1].value = '';  // 出社日
-    inputs[2].value = '';  // 帰社時刻
-    inputs[3].value = '';  // 備考
+    inputs[0].value = '';  // 内線
+    inputs[1].value = '';  // 行先
+    inputs[2].value = '';  // 出社日
+    inputs[3].value = '';  // 帰社時刻
+    inputs[4].value = '';  // 備考
 
     // 時計表示もクリア
     const td2 = tr.querySelector('.time-display');
@@ -1067,6 +1077,7 @@ const SaveManager = (function() {
     if (locBtn2) { setLocBtnState(locBtn2, ''); }
 
     // A+C+B: 空の値で各フィールドを更新
+    SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
@@ -1083,10 +1094,11 @@ const SaveManager = (function() {
   function updateRowDisplay(tr, row) {
     // 入力値を更新
     const inputs = tr.querySelectorAll('input');
-    inputs[0].value = row.destination || '';
-    inputs[1].value = row.startTime || '';
-    inputs[2].value = row.endTime || '';
-    inputs[3].value = row.note || '';
+    inputs[0].value = row.extension || '';
+    inputs[1].value = row.destination || '';
+    inputs[2].value = row.startTime || '';
+    inputs[3].value = row.endTime || '';
+    inputs[4].value = row.note || '';
 
     // 時計表示ボタンのテキストも更新
     const timeDisplay = tr.querySelector('.time-display');

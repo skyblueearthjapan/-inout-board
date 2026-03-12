@@ -81,6 +81,13 @@ const Validation = (function() {
       errors.push('行番号が指定されていません');
     }
 
+    // 内線番号のチェック（空 / 3桁の数字のみ許容）
+    if (payload.extension !== undefined && payload.extension !== '') {
+      if (!/^\d{1,3}$/.test(payload.extension.trim())) {
+        errors.push('内線番号は3桁以内の数字で入力してください');
+      }
+    }
+
     // 所在地のチェック（空 / 本社工場 / 新工場 / 外出 のみ許容）
     if (payload.location !== undefined && payload.location !== '') {
       const validLocations = ['本社工場', '新工場', '外出', '休み'];

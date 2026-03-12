@@ -299,6 +299,16 @@ body {
   width: 130px;  /* 所在地：トグル3択が収まる幅 */
 }
 
+.col-ext {
+  width: 70px;  /* 内線：3桁番号 */
+}
+
+.ext-cell .cell-input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
 .col-date {
   width: 130px;  /* 出社日：日付ピッカー用に少し広く */
 }
@@ -390,28 +400,28 @@ body {
   color: #aab4c2;
 }
 
-/* 本社工場 - 青系 */
+/* 本社工場 - 青系（優しいトーン） */
 .loc-cycle-btn[data-loc="本社工場"] {
-  background: #244a73;
-  color: #fff;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
-/* 新工場 - 緑系 */
+/* 新工場 - 緑系（優しいトーン） */
 .loc-cycle-btn[data-loc="新工場"] {
-  background: #2f9e44;
-  color: #fff;
+  background: #dcfce7;
+  color: #166534;
 }
 
-/* 外出 - オレンジ系 */
+/* 外出 - オレンジ系（優しいトーン） */
 .loc-cycle-btn[data-loc="外出"] {
-  background: #e67700;
-  color: #fff;
+  background: #ffedd5;
+  color: #9a3412;
 }
 
-/* 休み - グレー系 */
+/* 休み - グレー系（優しいトーン） */
 .loc-cycle-btn[data-loc="休み"] {
-  background: #868e96;
-  color: #fff;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 /* ========================================
