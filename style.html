@@ -283,6 +283,9 @@ body {
   text-align: left;
 }
 
+/* ヘッダー短縮テキスト切替（デフォルトはフル表示） */
+.th-short { display: none; }
+
 /* 列幅（重要：行先を最大に、ホワイトボードに合わせる） */
 .col-name {
   width: 100px;  /* 人員：狭く */
@@ -521,6 +524,45 @@ body {
 /* ========================================
    レスポンシブ
    ======================================== */
+
+/* --- 横スクロール救済（案C） --- */
+.outing-table {
+  min-width: 680px; /* これ以下は横スクロール */
+}
+
+/* --- タブレット（案D：コンパクト化） --- */
+@media (max-width: 1024px) {
+  .col-name        { width: 80px; }
+  .col-date        { width: 100px; }
+  .col-time        { width: 80px; }
+  .col-note        { width: 120px; }
+  .col-action      { width: 70px; }
+  /* col-destination は auto のまま → 残り全幅を確保 */
+
+  /* ヘッダー短縮テキスト */
+  .col-date .th-full,
+  .col-time .th-full,
+  .col-note .th-full    { display: none; }
+  .col-date .th-short,
+  .col-time .th-short,
+  .col-note .th-short   { display: inline; }
+
+  /* 備考セルを省略表示 */
+  .note-cell .cell-input {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* 行先の最低幅を保証 */
+  .col-destination { min-width: 160px; }
+
+  .name-cell { font-size: 16px; }
+  .cell-input { font-size: 14px; padding: 0 6px; }
+  .cell-input.destination { font-size: 16px; }
+}
+
+/* --- スマホ --- */
 @media (max-width: 768px) {
   .header {
     padding: 12px 16px;
@@ -538,7 +580,7 @@ body {
   .cell-input {
     height: 48px;
     font-size: 14px;
-    padding: 0 8px;
+    padding: 0 6px;
   }
 
   .cell-input.destination {
@@ -546,13 +588,19 @@ body {
   }
 
   .name-cell {
-    font-size: 16px;
-    padding: 0 8px !important;
+    font-size: 14px;
+    padding: 0 6px !important;
   }
 
-  .save-btn {
-    height: 48px;
-    font-size: 13px;
+  .col-name   { width: 70px; }
+  .col-date   { width: 90px; }
+  .col-time   { width: 70px; }
+  .col-note   { width: 100px; }
+  .col-action { width: 60px; }
+
+  .save-btn,
+  .clear-btn {
+    font-size: 11px;
   }
 
   .legend {
