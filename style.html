@@ -604,25 +604,41 @@ body {
 }
 
 /* ========================================
-   行ステータス（外出中ハイライト）
+   行の色分け（所在地に連動）
    ======================================== */
-.row-out td,
-.row-out th {
-  background: #ffedd5 !important; /* 薄いオレンジ（所在地「外出」と同トーン） */
+.row-loc-honsha td,
+.row-loc-honsha th {
+  background: #dbeafe !important;
+}
+.row-loc-honsha td:focus-within {
+  background: #bfdbfe !important;
+  box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
-.row-out td:focus-within {
+.row-loc-shin td,
+.row-loc-shin th {
+  background: #dcfce7 !important;
+}
+.row-loc-shin td:focus-within {
+  background: #bbf7d0 !important;
+  box-shadow: inset 0 0 0 2px #6aa4ff;
+}
+
+.row-loc-out td,
+.row-loc-out th {
+  background: #ffedd5 !important;
+}
+.row-loc-out td:focus-within {
   background: #fed7aa !important;
   box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
-.row-back td,
-.row-back th {
-  background: #dcfce7 !important; /* 薄い緑（所在地「新工場」と同トーン） */
+.row-loc-off td,
+.row-loc-off th {
+  background: #f1f5f9 !important;
 }
-
-.row-back td:focus-within {
-  background: #bbf7d0 !important;
+.row-loc-off td:focus-within {
+  background: #e2e8f0 !important;
   box-shadow: inset 0 0 0 2px #6aa4ff;
 }
 
@@ -726,12 +742,17 @@ body {
   border: 1px solid rgba(0,0,0,0.1);
 }
 
-.legend-out {
+.legend-loc-honsha {
+  background-color: #dbeafe;
+}
+.legend-loc-shin {
+  background-color: #dcfce7;
+}
+.legend-loc-out {
   background-color: #ffedd5;
 }
-
-.legend-back {
-  background-color: #dcfce7;
+.legend-loc-off {
+  background-color: #f1f5f9;
 }
 
 /* ========================================

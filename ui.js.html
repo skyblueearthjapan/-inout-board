@@ -211,9 +211,9 @@ const SaveManager = (function() {
     // C層: 変更キューに追加
     ChangeQueue.addChange(rowIndex, fieldName, value);
 
-    // 行の色分けをリアルタイム更新
-    if (fieldName === 'startTime' || fieldName === 'endTime') {
-      updateRowColor(rowIndex);
+    // 行の色分けをリアルタイム更新（所在地変更時）
+    if (fieldName === 'location') {
+      updateRowColorByLocation(rowIndex, value);
     }
 
     // 保存スケジュール
@@ -221,26 +221,19 @@ const SaveManager = (function() {
     scheduleSave();
   }
 
-  /** 行の現在の入力値からクラスを再計算して反映 */
-  function updateRowColor(rowIndex) {
+  /** 所在地の値から行クラスを即座に反映 */
+  function updateRowColorByLocation(rowIndex, location) {
     var tr = elements.tableBody.querySelector('tr[data-row-index="' + rowIndex + '"]');
     if (!tr) return;
 
-    var inputs = tr.querySelectorAll('input');
-    // inputs: [0]=内線, [1]=行先, [2]=出社日, [3]=帰社時刻(hidden), [4]=備考
-    var startTime = inputs[2] ? inputs[2].value.trim() : '';
-    var endTime = inputs[3] ? inputs[3].value.trim() : '';
     var name = tr.querySelector('.name-cell') ? tr.querySelector('.name-cell').textContent.trim() : '';
-
-    var cls = 'row-none';
     if (!name) {
-      cls = 'row-empty';
-    } else if (endTime) {
-      cls = 'row-back';
-    } else if (startTime) {
-      cls = 'row-out';
+      tr.className = 'row-empty';
+      return;
     }
-    tr.className = cls;
+
+    var loc = (location || '').trim();
+    tr.className = LOC_ROW_CLASS[loc] || 'row-none';
   }
 
   function scheduleSave() {
@@ -960,24 +953,23 @@ const SaveManager = (function() {
     ClockPicker.open(currentValue, onConfirm, onClear);
   }
 
+  // 所在地 → 行クラスのマッピング
+  const LOC_ROW_CLASS = {
+    '本社工場': 'row-loc-honsha',
+    '新工場': 'row-loc-shin',
+    '外出': 'row-loc-out',
+    '休み': 'row-loc-off'
+  };
+
   function getRowClass(row) {
     // 名前がない行は空行
     if (!row.name || row.name.trim() === '') {
       return 'row-empty';
     }
 
-    // 帰社時刻がある → 日帰り（緑色）
-    if (row.endTime && row.endTime.trim() !== '') {
-      return 'row-back';  // 緑色
-    }
-
-    // 出社日があって帰社時刻がない → 宿泊あり（黄色）
-    if (row.startTime && row.startTime.trim() !== '') {
-      return 'row-out';  // 黄色
-    }
-
-    // どちらもない → 通常
-    return 'row-none';
+    // 所在地に応じた色分け
+    var loc = (row.location || '').trim();
+    return LOC_ROW_CLASS[loc] || 'row-none';
   }
 
   // ========================================
