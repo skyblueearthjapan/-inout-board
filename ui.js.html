@@ -211,9 +211,36 @@ const SaveManager = (function() {
     // C層: 変更キューに追加
     ChangeQueue.addChange(rowIndex, fieldName, value);
 
+    // 行の色分けをリアルタイム更新
+    if (fieldName === 'startTime' || fieldName === 'endTime') {
+      updateRowColor(rowIndex);
+    }
+
     // 保存スケジュール
     updateSaveStatus('unsaved');
     scheduleSave();
+  }
+
+  /** 行の現在の入力値からクラスを再計算して反映 */
+  function updateRowColor(rowIndex) {
+    var tr = elements.tableBody.querySelector('tr[data-row-index="' + rowIndex + '"]');
+    if (!tr) return;
+
+    var inputs = tr.querySelectorAll('input');
+    // inputs: [0]=内線, [1]=行先, [2]=出社日, [3]=帰社時刻(hidden), [4]=備考
+    var startTime = inputs[2] ? inputs[2].value.trim() : '';
+    var endTime = inputs[3] ? inputs[3].value.trim() : '';
+    var name = tr.querySelector('.name-cell') ? tr.querySelector('.name-cell').textContent.trim() : '';
+
+    var cls = 'row-none';
+    if (!name) {
+      cls = 'row-empty';
+    } else if (endTime) {
+      cls = 'row-back';
+    } else if (startTime) {
+      cls = 'row-out';
+    }
+    tr.className = cls;
   }
 
   function scheduleSave() {
