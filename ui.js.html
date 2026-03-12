@@ -533,11 +533,11 @@ const SaveManager = (function() {
     nameTd.textContent = row.name || '';
     tr.appendChild(nameTd);
 
-    // 行先（プレースホルダなし、cell-input + destination）
-    tr.appendChild(createInputCell('destination', row.destination, '', 'destination'));
-
     // 所在地（トグルボタン）
     tr.appendChild(createLocationCell(row.location));
+
+    // 行先（プレースホルダなし、cell-input + destination）
+    tr.appendChild(createInputCell('destination', row.destination, '', 'destination'));
 
     // 出社日（日付ピッカー、date-cell）
     tr.appendChild(createDateInputCell('startTime', row.startTime, 'date-cell'));
