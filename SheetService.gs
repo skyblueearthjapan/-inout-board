@@ -99,14 +99,22 @@ const SheetService = (function() {
    * @returns {string}
    */
   function cellToTimeString(value) {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === '') {
       return '';
     }
     if (value instanceof Date) {
-      // 時刻として扱う
+      // スプレッドシートの空セルが Date(1899-12-30 00:00:00) を返す場合を除外
+      var year = value.getFullYear();
+      if (year < 1900) {
+        return '';
+      }
       return Utilities.formatDate(value, 'Asia/Tokyo', 'HH:mm');
     }
-    return String(value).trim();
+    var str = String(value).trim();
+    if (str === '0' || str === '0.0') {
+      return '';
+    }
+    return str;
   }
 
   /**
@@ -115,14 +123,23 @@ const SheetService = (function() {
    * @returns {string}
    */
   function cellToDateString(value) {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === '') {
       return '';
     }
     if (value instanceof Date) {
-      // 日付として扱う
+      // スプレッドシートの空セルが Date(1899-12-30) を返す場合を除外
+      var year = value.getFullYear();
+      if (year < 1900) {
+        return '';
+      }
       return Utilities.formatDate(value, 'Asia/Tokyo', 'yyyy-MM-dd');
     }
-    return String(value).trim();
+    var str = String(value).trim();
+    // 数値の0やゴミデータを除外
+    if (str === '0' || str === '0.0') {
+      return '';
+    }
+    return str;
   }
 
   /**
@@ -131,10 +148,14 @@ const SheetService = (function() {
    * @returns {string}
    */
   function cellToString(value) {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === '') {
       return '';
     }
     if (value instanceof Date) {
+      var year = value.getFullYear();
+      if (year < 1900) {
+        return '';
+      }
       // デフォルトは時刻として扱う（後方互換性）
       return Utilities.formatDate(value, 'Asia/Tokyo', 'HH:mm');
     }
