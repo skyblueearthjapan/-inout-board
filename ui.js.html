@@ -211,11 +211,6 @@ const SaveManager = (function() {
     // C層: 変更キューに追加
     ChangeQueue.addChange(rowIndex, fieldName, value);
 
-    // 行の色分けをリアルタイム更新（所在地変更時）
-    if (fieldName === 'location') {
-      updateRowColorByLocation(rowIndex, value);
-    }
-
     // 保存スケジュール
     updateSaveStatus('unsaved');
     scheduleSave();
@@ -485,6 +480,7 @@ const SaveManager = (function() {
             const locBtn = tr.querySelector('.loc-cycle-btn');
             if (locBtn) { setLocBtnState(locBtn, draft.location); }
             ChangeQueue.addChange(row.rowIndex, 'location', draft.location);
+            updateRowColorByLocation(row.rowIndex, draft.location);
           }
           if (draft.startTime !== undefined) {
             inputs[2].value = draft.startTime;
@@ -620,6 +616,7 @@ const SaveManager = (function() {
       const next = LOC_CYCLE[(idx + 1) % LOC_CYCLE.length];
       setLocBtnState(btn, next);
       SaveManager.onInputChange(currentDate, rowIndex, 'location', next);
+      updateRowColorByLocation(rowIndex, next);
     });
 
     td.appendChild(btn);
@@ -1061,6 +1058,7 @@ const SaveManager = (function() {
       SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
+      updateRowColorByLocation(rowIndex, '');
     });
 
     // 即座に保存
@@ -1108,6 +1106,7 @@ const SaveManager = (function() {
     SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
+    updateRowColorByLocation(rowIndex, '');
 
     // 即座に保存
     SaveManager.manualSave();
