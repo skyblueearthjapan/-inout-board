@@ -530,15 +530,8 @@ body {
   min-width: 680px; /* これ以下は横スクロール */
 }
 
-/* --- タブレット（案D：コンパクト化） --- */
+/* --- タブレット（ヘッダー短縮・省略表示のみ、列幅は変更なし） --- */
 @media (max-width: 1024px) {
-  .col-name        { width: 80px; }
-  .col-date        { width: 100px; }
-  .col-time        { width: 80px; }
-  .col-note        { width: 120px; }
-  .col-action      { width: 70px; }
-  /* col-destination は auto のまま → 残り全幅を確保 */
-
   /* ヘッダー短縮テキスト */
   .col-date .th-full,
   .col-time .th-full,
@@ -553,13 +546,6 @@ body {
     overflow: hidden;
     white-space: nowrap;
   }
-
-  /* 行先の最低幅を保証 */
-  .col-destination { min-width: 160px; }
-
-  .name-cell { font-size: 16px; }
-  .cell-input { font-size: 14px; padding: 0 6px; }
-  .cell-input.destination { font-size: 16px; }
 }
 
 /* --- スマホ --- */
@@ -580,7 +566,7 @@ body {
   .cell-input {
     height: 48px;
     font-size: 14px;
-    padding: 0 6px;
+    padding: 0 8px;
   }
 
   .cell-input.destination {
@@ -588,19 +574,13 @@ body {
   }
 
   .name-cell {
-    font-size: 14px;
-    padding: 0 6px !important;
+    font-size: 16px;
+    padding: 0 8px !important;
   }
 
-  .col-name   { width: 70px; }
-  .col-date   { width: 90px; }
-  .col-time   { width: 70px; }
-  .col-note   { width: 100px; }
-  .col-action { width: 60px; }
-
-  .save-btn,
-  .clear-btn {
-    font-size: 11px;
+  .save-btn {
+    height: 48px;
+    font-size: 13px;
   }
 
   .legend {
