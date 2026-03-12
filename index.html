@@ -37,13 +37,23 @@
       <span>読み込み中...</span>
     </div>
     
+    <!-- 編集トグル -->
+    <div class="edit-toggle-bar">
+      <label class="edit-toggle">
+        <input type="checkbox" id="editToggle" />
+        <span class="edit-toggle__slider"></span>
+        <span class="edit-toggle__label" id="editToggleLabel">読み取り専用</span>
+      </label>
+    </div>
+
     <!-- メインテーブル -->
-    <div id="tableContainer" class="table-container hidden">
+    <div id="tableContainer" class="table-container hidden edit-locked">
       <table class="outing-table">
         <thead>
           <tr>
             <th class="col-name">人員</th>
             <th class="col-destination">行先</th>
+            <th class="col-location">所在地</th>
             <th class="col-date"><span class="th-full">出社日</span><span class="th-short">出社</span></th>
             <th class="col-time"><span class="th-full">帰社時刻</span><span class="th-short">帰社</span></th>
             <th class="col-note"><span class="th-full">備考</span><span class="th-short">備考</span></th>

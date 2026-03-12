@@ -386,6 +386,15 @@ const SaveManager = (function() {
     window.currentDate = currentDate;
     window.updateRowDisplay = updateRowDisplay;
 
+    // 編集トグル
+    var editToggle = document.getElementById('editToggle');
+    var editToggleLabel = document.getElementById('editToggleLabel');
+    editToggle.addEventListener('change', function() {
+      var locked = !editToggle.checked;
+      elements.tableContainer.classList.toggle('edit-locked', locked);
+      editToggleLabel.textContent = locked ? '読み取り専用' : '編集可能';
+    });
+
     // イベントリスナー
     elements.dateInput.addEventListener('change', onDateChange);
     elements.reloadBtn.addEventListener('click', loadData);
@@ -415,6 +424,13 @@ const SaveManager = (function() {
     currentData = data;
     renderTable(data.rows);
 
+    // 編集トグルをOFFにリセット
+    var editToggle = document.getElementById('editToggle');
+    var editToggleLabel = document.getElementById('editToggleLabel');
+    editToggle.checked = false;
+    editToggleLabel.textContent = '読み取り専用';
+    elements.tableContainer.classList.add('edit-locked');
+
     // クラッシュリカバリ: ドラフトを復元
     restoreDrafts(data.rows);
 
@@ -440,12 +456,20 @@ const SaveManager = (function() {
             inputs[0].value = draft.destination;
             ChangeQueue.addChange(row.rowIndex, 'destination', draft.destination);
           }
+          if (draft.location !== undefined) {
+            // 所在地ボタンの復元
+            const locBtn = tr.querySelector('.loc-cycle-btn');
+            if (locBtn) { setLocBtnState(locBtn, draft.location); }
+            ChangeQueue.addChange(row.rowIndex, 'location', draft.location);
+          }
           if (draft.startTime !== undefined) {
             inputs[1].value = draft.startTime;
             ChangeQueue.addChange(row.rowIndex, 'startTime', draft.startTime);
           }
           if (draft.endTime !== undefined) {
             inputs[2].value = draft.endTime;
+            var timeDisp = tr.querySelector('.time-display');
+            if (timeDisp) { timeDisp.textContent = draft.endTime; }
             ChangeQueue.addChange(row.rowIndex, 'endTime', draft.endTime);
           }
           if (draft.note !== undefined) {
@@ -512,6 +536,9 @@ const SaveManager = (function() {
     // 行先（プレースホルダなし、cell-input + destination）
     tr.appendChild(createInputCell('destination', row.destination, '', 'destination'));
 
+    // 所在地（トグルボタン）
+    tr.appendChild(createLocationCell(row.location));
+
     // 出社日（日付ピッカー、date-cell）
     tr.appendChild(createDateInputCell('startTime', row.startTime, 'date-cell'));
 
@@ -543,6 +570,38 @@ const SaveManager = (function() {
     tr.appendChild(actionTd);
 
     return tr;
+  }
+
+  // 所在地の巡回順序: 空 → 本社工場 → 新工場 → 外出 → 休み → 空 → …
+  const LOC_CYCLE = ['', '本社工場', '新工場', '外出', '休み'];
+  const LOC_LABELS = { '': '—', '本社工場': '本社工場', '新工場': '新工場', '外出': '外出', '休み': '休み' };
+
+  function createLocationCell(currentValue) {
+    const td = document.createElement('td');
+    td.className = 'location-cell';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'loc-cycle-btn';
+    setLocBtnState(btn, currentValue || '');
+
+    btn.addEventListener('click', function(e) {
+      const tr = e.target.closest('tr');
+      const rowIndex = parseInt(tr.dataset.rowIndex);
+      const cur = btn.dataset.loc || '';
+      const idx = LOC_CYCLE.indexOf(cur);
+      const next = LOC_CYCLE[(idx + 1) % LOC_CYCLE.length];
+      setLocBtnState(btn, next);
+      SaveManager.onInputChange(currentDate, rowIndex, 'location', next);
+    });
+
+    td.appendChild(btn);
+    return td;
+  }
+
+  function setLocBtnState(btn, value) {
+    btn.dataset.loc = value;
+    btn.textContent = LOC_LABELS[value] || '—';
   }
 
   function createInputCell(fieldName, value, placeholder, tdClass) {
@@ -620,34 +679,251 @@ const SaveManager = (function() {
       td.className = tdClass;
     }
 
+    // 隠しinput（データ保持用）
     const input = document.createElement('input');
-    input.type = 'time';  // タイムピッカー（プルダウン＋手動入力可能）
-    input.className = 'cell-input';
+    input.type = 'hidden';
     input.name = fieldName;
     input.value = value || '';
-
-    // A+C+B: 入力時に即座に保存（auto-save）
-    input.addEventListener('input', (e) => {
-      const row = e.target.closest('tr');
-      const rowIndex = parseInt(row.dataset.rowIndex);
-      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
-    });
-
-    input.addEventListener('change', (e) => {
-      const row = e.target.closest('tr');
-      const rowIndex = parseInt(row.dataset.rowIndex);
-      SaveManager.onInputChange(currentDate, rowIndex, fieldName, e.target.value);
-    });
-
-    // Enterキーで即座に保存
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        SaveManager.manualSave();
-      }
-    });
-
     td.appendChild(input);
+
+    // 表示ボタン（タップで時計を開く）
+    const display = document.createElement('button');
+    display.type = 'button';
+    display.className = 'time-display';
+    display.textContent = value || '';
+
+    display.addEventListener('click', function() {
+      const tr = td.closest('tr');
+      const rowIndex = parseInt(tr.dataset.rowIndex);
+      openClockPicker(input.value, function(newVal) {
+        input.value = newVal;
+        display.textContent = newVal;
+        SaveManager.onInputChange(currentDate, rowIndex, fieldName, newVal);
+      }, function() {
+        // クリア
+        input.value = '';
+        display.textContent = '';
+        SaveManager.onInputChange(currentDate, rowIndex, fieldName, '');
+      });
+    });
+
+    td.appendChild(display);
     return td;
+  }
+
+  // ========================================
+  // 時計型タイムピッカー
+  // ========================================
+  const ClockPicker = (function() {
+    let overlay = null;
+    let mode = 'hour'; // 'hour' | 'minute'
+    let selectedHour = 17;
+    let selectedMinute = 0;
+    let onConfirm = null;
+    let onClear = null;
+
+    function init() {
+      if (overlay) return;
+
+      overlay = document.createElement('div');
+      overlay.className = 'clock-overlay hidden';
+      overlay.innerHTML = [
+        '<div class="clock-dialog">',
+        '  <div class="clock-header">',
+        '    <div class="clock-header-time">',
+        '      <span class="clock-h is-active" id="clockH">17</span>',
+        '      <span>:</span>',
+        '      <span class="clock-m" id="clockM">00</span>',
+        '    </div>',
+        '    <div class="clock-header-label" id="clockLabel">時を選択</div>',
+        '  </div>',
+        '  <div class="clock-body">',
+        '    <div class="clock-face" id="clockFace">',
+        '      <div class="clock-hand" id="clockHand"></div>',
+        '      <div class="clock-center-dot"></div>',
+        '    </div>',
+        '  </div>',
+        '  <div class="clock-footer">',
+        '    <button class="clock-footer-btn danger" id="clockClear">クリア</button>',
+        '    <div>',
+        '      <button class="clock-footer-btn" id="clockCancel">キャンセル</button>',
+        '      <button class="clock-footer-btn primary" id="clockOk">OK</button>',
+        '    </div>',
+        '  </div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(overlay);
+
+      // ヘッダーの時/分クリック
+      document.getElementById('clockH').addEventListener('click', function() { switchMode('hour'); });
+      document.getElementById('clockM').addEventListener('click', function() { switchMode('minute'); });
+
+      // フッターボタン
+      document.getElementById('clockCancel').addEventListener('click', close);
+      document.getElementById('clockOk').addEventListener('click', function() {
+        if (onConfirm) {
+          const h = String(selectedHour).padStart(2, '0');
+          const m = String(selectedMinute).padStart(2, '0');
+          onConfirm(h + ':' + m);
+        }
+        close();
+      });
+      document.getElementById('clockClear').addEventListener('click', function() {
+        if (onClear) { onClear(); }
+        close();
+      });
+
+      // オーバーレイ背景クリックで閉じる
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) { close(); }
+      });
+    }
+
+    function open(currentValue, confirmCb, clearCb) {
+      init();
+      onConfirm = confirmCb;
+      onClear = clearCb;
+
+      // 初期値をパース
+      if (currentValue && currentValue.match(/^(\d{1,2}):(\d{2})$/)) {
+        selectedHour = parseInt(RegExp.$1);
+        selectedMinute = parseInt(RegExp.$2);
+      } else {
+        selectedHour = 17;
+        selectedMinute = 0;
+      }
+
+      mode = 'hour';
+      updateDisplay();
+      renderFace();
+      overlay.classList.remove('hidden');
+    }
+
+    function close() {
+      if (overlay) { overlay.classList.add('hidden'); }
+    }
+
+    function switchMode(m) {
+      mode = m;
+      updateDisplay();
+      renderFace();
+    }
+
+    function updateDisplay() {
+      var hEl = document.getElementById('clockH');
+      var mEl = document.getElementById('clockM');
+      var label = document.getElementById('clockLabel');
+
+      hEl.textContent = String(selectedHour).padStart(2, '0');
+      mEl.textContent = String(selectedMinute).padStart(2, '0');
+
+      hEl.classList.toggle('is-active', mode === 'hour');
+      mEl.classList.toggle('is-active', mode === 'minute');
+      label.textContent = mode === 'hour' ? '時を選択' : '分を選択';
+    }
+
+    function renderFace() {
+      var face = document.getElementById('clockFace');
+      var hand = document.getElementById('clockHand');
+
+      // 既存の数字を削除
+      face.querySelectorAll('.clock-number').forEach(function(el) { el.remove(); });
+
+      var numbers, selectedVal, count;
+
+      if (mode === 'hour') {
+        // 0〜23時を表示（外側0-11, 内側12-23）
+        numbers = [];
+        for (var i = 0; i < 12; i++) { numbers.push(i); }
+        count = 12;
+        selectedVal = selectedHour;
+
+        // 外周: 0-11
+        for (var n = 0; n < 12; n++) {
+          var angle = (n * 30 - 90) * Math.PI / 180;
+          var r = 96;
+          var x = 120 + r * Math.cos(angle) - 20;
+          var y = 120 + r * Math.sin(angle) - 20;
+
+          var el = document.createElement('div');
+          el.className = 'clock-number' + (selectedVal === n ? ' is-selected' : '');
+          el.textContent = n;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          el.dataset.val = n;
+          el.addEventListener('click', onNumberClick);
+          face.appendChild(el);
+        }
+
+        // 内周: 12-23
+        for (var n2 = 12; n2 < 24; n2++) {
+          var angle2 = ((n2 - 12) * 30 - 90) * Math.PI / 180;
+          var r2 = 62;
+          var x2 = 120 + r2 * Math.cos(angle2) - 20;
+          var y2 = 120 + r2 * Math.sin(angle2) - 20;
+
+          var el2 = document.createElement('div');
+          el2.className = 'clock-number' + (selectedVal === n2 ? ' is-selected' : '');
+          el2.textContent = n2;
+          el2.style.left = x2 + 'px';
+          el2.style.top = y2 + 'px';
+          el2.style.fontSize = '13px';
+          el2.dataset.val = n2;
+          el2.addEventListener('click', onNumberClick);
+          face.appendChild(el2);
+        }
+
+        // 針の角度と長さ
+        var hAngle = (selectedHour % 12) * 30;
+        var hLen = selectedHour >= 12 ? 50 : 84;
+        hand.style.height = hLen + 'px';
+        hand.style.transform = 'translateX(-50%) rotate(' + hAngle + 'deg)';
+
+      } else {
+        // 分: 0,5,10,...55 を円形に配置
+        for (var m = 0; m < 60; m += 5) {
+          var angle3 = (m * 6 - 90) * Math.PI / 180;
+          var r3 = 96;
+          var x3 = 120 + r3 * Math.cos(angle3) - 20;
+          var y3 = 120 + r3 * Math.sin(angle3) - 20;
+
+          var el3 = document.createElement('div');
+          el3.className = 'clock-number' + (selectedMinute === m ? ' is-selected' : '');
+          el3.textContent = String(m).padStart(2, '0');
+          el3.style.left = x3 + 'px';
+          el3.style.top = y3 + 'px';
+          el3.dataset.val = m;
+          el3.addEventListener('click', onNumberClick);
+          face.appendChild(el3);
+        }
+
+        var mAngle = selectedMinute * 6;
+        hand.style.height = '84px';
+        hand.style.transform = 'translateX(-50%) rotate(' + mAngle + 'deg)';
+      }
+    }
+
+    function onNumberClick(e) {
+      var val = parseInt(e.target.dataset.val);
+      if (mode === 'hour') {
+        selectedHour = val;
+        updateDisplay();
+        renderFace();
+        // 自動で分選択に移行
+        setTimeout(function() { switchMode('minute'); }, 200);
+      } else {
+        selectedMinute = val;
+        updateDisplay();
+        renderFace();
+      }
+    }
+
+    return { open: open };
+  })();
+
+  function openClockPicker(currentValue, onConfirm, onClear) {
+    ClockPicker.open(currentValue, onConfirm, onClear);
   }
 
   function getRowClass(row) {
@@ -737,8 +1013,17 @@ const SaveManager = (function() {
       inputs[2].value = '';  // 帰社時刻
       inputs[3].value = '';  // 備考
 
+      // 時計表示もクリア
+      const td1 = tr.querySelector('.time-display');
+      if (td1) { td1.textContent = ''; }
+
+      // 所在地をリセット
+      const locBtn = tr.querySelector('.loc-cycle-btn');
+      if (locBtn) { setLocBtnState(locBtn, ''); }
+
       // A+C+B: 変更をキューに追加
       SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
+      SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
@@ -773,8 +1058,17 @@ const SaveManager = (function() {
     inputs[2].value = '';  // 帰社時刻
     inputs[3].value = '';  // 備考
 
+    // 時計表示もクリア
+    const td2 = tr.querySelector('.time-display');
+    if (td2) { td2.textContent = ''; }
+
+    // 所在地をリセット
+    const locBtn2 = tr.querySelector('.loc-cycle-btn');
+    if (locBtn2) { setLocBtnState(locBtn2, ''); }
+
     // A+C+B: 空の値で各フィールドを更新
     SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
+    SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
@@ -793,6 +1087,14 @@ const SaveManager = (function() {
     inputs[1].value = row.startTime || '';
     inputs[2].value = row.endTime || '';
     inputs[3].value = row.note || '';
+
+    // 時計表示ボタンのテキストも更新
+    const timeDisplay = tr.querySelector('.time-display');
+    if (timeDisplay) { timeDisplay.textContent = row.endTime || ''; }
+
+    // 所在地ボタンを更新
+    const locBtn = tr.querySelector('.loc-cycle-btn');
+    if (locBtn) { setLocBtnState(locBtn, row.location || ''); }
 
     // クラスを更新
     tr.className = getRowClass(row);

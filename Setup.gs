@@ -124,3 +124,58 @@ function getWebAppUrl() {
   Logger.log('WebアプリURL: ' + url);
   return url;
 }
+
+/**
+ * 所在地列（C列）を挿入するマイグレーション
+ *
+ * 変更前: A:人員 B:行先 C:出社日 D:帰社時刻 E:備考
+ * 変更後: A:人員 B:行先 C:所在地 D:出社日 E:帰社時刻 F:備考
+ *
+ * 実行すると：
+ * 1. C列の前に新しい列を挿入（既存C〜E列がD〜F列にシフト）
+ * 2. ヘッダー行（3行目）のC列に「所在地」を設定
+ * 3. ScriptProperties の HEADER_RANGE を A3:F3 に更新
+ * 4. ScriptProperties の DATA_RANGE を A4:F19 に更新
+ *
+ * ※ C3が既に「所在地」の場合はスキップします
+ */
+function migrateAddLocationColumn() {
+  const props = PropertiesService.getScriptProperties();
+  const spreadsheetId = props.getProperty('SPREADSHEET_ID');
+  const sheetName = props.getProperty('SHEET_NAME') || '外出ホワイトボード';
+
+  if (!spreadsheetId || spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
+    throw new Error('SPREADSHEET_ID が設定されていません。先に initializeProperties を実行してください。');
+  }
+
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('シート「' + sheetName + '」が見つかりません。');
+  }
+
+  // C3が既に「所在地」なら列挿入をスキップ
+  const headerC = String(sheet.getRange('C3').getValue()).trim();
+  if (headerC === '所在地') {
+    Logger.log('C3は既に「所在地」です。列挿入をスキップします。');
+  } else {
+    // C列の前に1列挿入（既存C〜E列 → D〜F列にシフト）
+    sheet.insertColumnBefore(3);
+    Logger.log('C列を挿入しました（既存C〜E列がD〜F列にシフト）。');
+
+    // ヘッダーを設定
+    sheet.getRange('C3').setValue('所在地');
+    Logger.log('C3に「所在地」ヘッダーを設定しました。');
+  }
+
+  // ScriptProperties を更新
+  props.setProperty('HEADER_RANGE', 'A3:F3');
+  props.setProperty('DATA_RANGE', 'A4:F19');
+
+  Logger.log('ScriptProperties を更新しました:');
+  Logger.log('  HEADER_RANGE: A3:F3');
+  Logger.log('  DATA_RANGE: A4:F19');
+  Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
+
+  return 'マイグレーション完了';
+}

@@ -292,7 +292,11 @@ body {
 }
 
 .col-destination {
-  width: auto;  /* 行先：残り全部（約60%） */
+  width: auto;  /* 行先：残り全部 */
+}
+
+.col-location {
+  width: 130px;  /* 所在地：トグル3択が収まる幅 */
 }
 
 .col-date {
@@ -361,6 +365,222 @@ body {
 /* 備考 */
 .note-cell .cell-input {
   font-size: 16px;
+}
+
+/* ========================================
+   所在地トグルボタン（1セル1ボタン巡回式）
+   ======================================== */
+.location-cell {
+  padding: 0 !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.loc-cycle-btn {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.05em;
+  background: transparent;
+  color: #aab4c2;
+}
+
+/* 本社工場 - 青系 */
+.loc-cycle-btn[data-loc="本社工場"] {
+  background: #244a73;
+  color: #fff;
+}
+
+/* 新工場 - 緑系 */
+.loc-cycle-btn[data-loc="新工場"] {
+  background: #2f9e44;
+  color: #fff;
+}
+
+/* 外出 - オレンジ系 */
+.loc-cycle-btn[data-loc="外出"] {
+  background: #e67700;
+  color: #fff;
+}
+
+/* 休み - グレー系 */
+.loc-cycle-btn[data-loc="休み"] {
+  background: #868e96;
+  color: #fff;
+}
+
+/* ========================================
+   時計型タイムピッカー
+   ======================================== */
+.clock-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.clock-overlay.hidden { display: none; }
+
+.clock-dialog {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  width: 300px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.clock-header {
+  background: #244a73;
+  color: #fff;
+  padding: 16px 20px;
+  text-align: center;
+}
+
+.clock-header-time {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.clock-header-time .clock-h,
+.clock-header-time .clock-m {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.clock-header-time .clock-h.is-active,
+.clock-header-time .clock-m.is-active {
+  background: rgba(255,255,255,.25);
+}
+
+.clock-header-label {
+  font-size: 13px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.clock-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.clock-face {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: #f0f2f5;
+  margin-bottom: 16px;
+}
+
+.clock-number {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b1f3a;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.clock-number:hover {
+  background: rgba(36,74,115,.1);
+}
+
+.clock-number.is-selected {
+  background: #244a73;
+  color: #fff;
+}
+
+.clock-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  width: 2px;
+  background: #244a73;
+  transform-origin: bottom center;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.clock-center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #244a73;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.clock-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 20px 16px;
+}
+
+.clock-footer-btn {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.clock-footer-btn:hover {
+  background: #f0f2f5;
+}
+
+.clock-footer-btn.primary {
+  background: #244a73;
+  color: #fff;
+}
+
+.clock-footer-btn.primary:hover {
+  background: #1d3d5f;
+}
+
+.clock-footer-btn.danger {
+  color: #d9534f;
+}
+
+/* 時刻表示セル（タップで時計を開く） */
+.time-display {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  color: #0b1f3a;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-display:empty::after {
+  content: '';
 }
 
 /* フォーカス時だけ薄く強調（スプレッドシートっぽく） */
@@ -522,12 +742,84 @@ body {
 }
 
 /* ========================================
+   編集トグル
+   ======================================== */
+.edit-toggle-bar {
+  background: #fff;
+  padding: 8px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+}
+
+.edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.edit-toggle input { display: none; }
+
+.edit-toggle__slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #cbd5e0;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.edit-toggle__slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+
+.edit-toggle input:checked + .edit-toggle__slider {
+  background: #2f9e44;
+}
+
+.edit-toggle input:checked + .edit-toggle__slider::after {
+  transform: translateX(20px);
+}
+
+.edit-toggle__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+/* 編集ロック状態 */
+.edit-locked .cell-input,
+.edit-locked .loc-cycle-btn,
+.edit-locked .time-display,
+.edit-locked .save-btn,
+.edit-locked .clear-btn {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.edit-locked .cell-input {
+  background: #f7f9fc;
+}
+
+/* ========================================
    レスポンシブ
    ======================================== */
 
 /* --- 横スクロール救済（案C） --- */
 .outing-table {
-  min-width: 680px; /* これ以下は横スクロール */
+  min-width: 1060px; /* 固定列計740px＋行先320px を確保。狭い端末では横スクロール */
 }
 
 /* --- タブレット（ヘッダー短縮・省略表示のみ、列幅は変更なし） --- */

@@ -81,6 +81,14 @@ const Validation = (function() {
       errors.push('行番号が指定されていません');
     }
 
+    // 所在地のチェック（空 / 本社工場 / 新工場 / 外出 のみ許容）
+    if (payload.location !== undefined && payload.location !== '') {
+      const validLocations = ['本社工場', '新工場', '外出', '休み'];
+      if (validLocations.indexOf(payload.location) === -1) {
+        errors.push('所在地は「本社工場」「新工場」「外出」のいずれかを選択してください');
+      }
+    }
+
     // 出社日のフォーマットチェック（YYYY-MM-DD）
     if (!isValidDateFormat(payload.startTime)) {
       errors.push('出社日の形式が不正です（例: 2025-12-25）');

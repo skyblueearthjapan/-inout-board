@@ -169,17 +169,20 @@ const SheetService = (function() {
     const startRow = dataRange.getRow();
     
     // OutingRow配列に変換
+    // 列構成: A:人員 B:行先 C:所在地 D:出社日 E:帰社時刻 F:備考
     const rows = values.map((row, index) => {
       const name = cellToString(row[0]);
       const destination = cellToString(row[1]);
-      const startTime = cellToDateString(row[2]);  // 日付として扱う
-      const endTime = cellToTimeString(row[3]);    // 時刻として扱う
-      const note = cellToString(row[4]);
+      const location = row.length > 2 ? cellToString(row[2]) : '';  // C列：所在地
+      const startTime = row.length > 3 ? cellToDateString(row[3]) : '';  // D列：出社日
+      const endTime = row.length > 4 ? cellToTimeString(row[4]) : '';    // E列：帰社時刻
+      const note = row.length > 5 ? cellToString(row[5]) : '';           // F列：備考
 
       return {
         rowIndex: startRow + index,
         name: name,
         destination: destination,
+        location: location,
         startTime: startTime,
         endTime: endTime,
         note: note,
@@ -228,14 +231,19 @@ const SheetService = (function() {
 
         const rowIndex = change.rowIndex;
 
-        // B〜E列（2〜5列目）を更新
+        // B〜F列（2〜6列目）を更新
+        // B:行先, C:所在地, D:出社日, E:帰社時刻, F:備考
         if (change.destination !== undefined) {
           sheet.getRange(rowIndex, 2).setValue(change.destination || '');
         }
 
+        if (change.location !== undefined) {
+          sheet.getRange(rowIndex, 3).setValue(change.location || '');
+        }
+
         // 出社日セルを文字列として保存
         if (change.startTime !== undefined) {
-          const startDateCell = sheet.getRange(rowIndex, 3);
+          const startDateCell = sheet.getRange(rowIndex, 4);
           startDateCell.setNumberFormat('@');
           startDateCell.setValue(change.startTime || '');
         }
@@ -243,19 +251,19 @@ const SheetService = (function() {
         // 帰社時刻セルを文字列として保存
         if (change.endTime !== undefined) {
           const normalizedEndTime = Validation.normalizeTime(change.endTime || '');
-          const endTimeCell = sheet.getRange(rowIndex, 4);
+          const endTimeCell = sheet.getRange(rowIndex, 5);
           endTimeCell.setNumberFormat('@');
           endTimeCell.setValue(normalizedEndTime);
         }
 
         if (change.note !== undefined) {
-          sheet.getRange(rowIndex, 5).setValue(change.note || '');
+          sheet.getRange(rowIndex, 6).setValue(change.note || '');
         }
 
         SpreadsheetApp.flush();
 
         // 更新後の行を読み直す
-        const updatedRow = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+        const updatedRow = sheet.getRange(rowIndex, 1, 1, 6).getValues()[0];
 
         results.push({
           success: true,
@@ -264,12 +272,13 @@ const SheetService = (function() {
             rowIndex: rowIndex,
             name: cellToString(updatedRow[0]),
             destination: cellToString(updatedRow[1]),
-            startTime: cellToDateString(updatedRow[2]),
-            endTime: cellToTimeString(updatedRow[3]),
-            note: cellToString(updatedRow[4]),
+            location: cellToString(updatedRow[2]),
+            startTime: cellToDateString(updatedRow[3]),
+            endTime: cellToTimeString(updatedRow[4]),
+            note: cellToString(updatedRow[5]),
             status: calculateStatus(
-              cellToDateString(updatedRow[2]),
-              cellToTimeString(updatedRow[3])
+              cellToDateString(updatedRow[3]),
+              cellToTimeString(updatedRow[4])
             )
           },
           error: null
@@ -308,40 +317,41 @@ const SheetService = (function() {
     
     const rowIndex = payload.rowIndex;
 
-    // B〜E列（2〜5列目）を更新
-    // startTime: 日付（YYYY-MM-DD）そのまま保存
-    // endTime: 時刻（HH:MM）文字列として保存（タイムゾーン問題を回避）
+    // B〜F列（2〜6列目）を更新
+    // B:行先, C:所在地, D:出社日, E:帰社時刻, F:備考
     const normalizedEndTime = Validation.normalizeTime(payload.endTime || '');
 
     sheet.getRange(rowIndex, 2).setValue(payload.destination || '');
+    sheet.getRange(rowIndex, 3).setValue(payload.location || '');
 
     // 出社日セルを文字列として保存（日付変換を防ぐ）
-    const startDateCell = sheet.getRange(rowIndex, 3);
-    startDateCell.setNumberFormat('@');  // 書式なしテキスト（文字列）
+    const startDateCell = sheet.getRange(rowIndex, 4);
+    startDateCell.setNumberFormat('@');
     startDateCell.setValue(payload.startTime || '');
 
     // 帰社時刻セルを文字列として保存（タイムゾーン変換を防ぐ）
-    const endTimeCell = sheet.getRange(rowIndex, 4);
-    endTimeCell.setNumberFormat('@');  // 書式なしテキスト（文字列）
+    const endTimeCell = sheet.getRange(rowIndex, 5);
+    endTimeCell.setNumberFormat('@');
     endTimeCell.setValue(normalizedEndTime);
 
-    sheet.getRange(rowIndex, 5).setValue(payload.note || '');
+    sheet.getRange(rowIndex, 6).setValue(payload.note || '');
 
     SpreadsheetApp.flush();
 
     // 更新後の行を読み直す
-    const updatedRow = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+    const updatedRow = sheet.getRange(rowIndex, 1, 1, 6).getValues()[0];
 
     return {
       rowIndex: rowIndex,
       name: cellToString(updatedRow[0]),
       destination: cellToString(updatedRow[1]),
-      startTime: cellToDateString(updatedRow[2]),  // 日付として取得
-      endTime: cellToTimeString(updatedRow[3]),    // 時刻として取得
-      note: cellToString(updatedRow[4]),
+      location: cellToString(updatedRow[2]),
+      startTime: cellToDateString(updatedRow[3]),
+      endTime: cellToTimeString(updatedRow[4]),
+      note: cellToString(updatedRow[5]),
       status: calculateStatus(
-        cellToDateString(updatedRow[2]),
-        cellToTimeString(updatedRow[3])
+        cellToDateString(updatedRow[3]),
+        cellToTimeString(updatedRow[4])
       )
     };
   }
