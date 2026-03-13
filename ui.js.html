@@ -1008,7 +1008,7 @@ const SaveManager = (function() {
   // 全行クリア
   // ========================================
   function clearAllRows() {
-    if (!confirm('すべての行の情報をクリアしますか？（名前・所在地以外）\n\nこの操作は取り消せません。')) {
+    if (!confirm('すべての行の情報をクリアしますか？（名前・所在地・内線以外）\n\nこの操作は取り消せません。')) {
       return;
     }
 
@@ -1027,8 +1027,7 @@ const SaveManager = (function() {
       const rowIndex = parseInt(tr.dataset.rowIndex);
       const inputs = tr.querySelectorAll('input');
 
-      // 入力フィールドを空にする
-      inputs[0].value = '';  // 内線
+      // 入力フィールドを空にする（内線は残す）
       inputs[1].value = '';  // 行先
       inputs[2].value = '';  // 出社日
       inputs[3].value = '';  // 帰社時刻
@@ -1038,8 +1037,7 @@ const SaveManager = (function() {
       const td1 = tr.querySelector('.time-display');
       if (td1) { td1.textContent = ''; }
 
-      // A+C+B: 変更をキューに追加（所在地は除外）
-      SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
+      // A+C+B: 変更をキューに追加（所在地・内線は除外）
       SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
@@ -1061,16 +1059,15 @@ const SaveManager = (function() {
   // 行クリア
   // ========================================
   function clearRow(rowIndex) {
-    if (!confirm('この行の情報をクリアしますか？（名前・所在地以外）')) {
+    if (!confirm('この行の情報をクリアしますか？（名前・所在地・内線以外）')) {
       return;
     }
 
     const tr = elements.tableBody.querySelector(`tr[data-row-index="${rowIndex}"]`);
     if (!tr) return;
 
-    // 入力フィールドを空にする（所在地は残す）
+    // 入力フィールドを空にする（所在地・内線は残す）
     const inputs = tr.querySelectorAll('input');
-    inputs[0].value = '';  // 内線
     inputs[1].value = '';  // 行先
     inputs[2].value = '';  // 出社日
     inputs[3].value = '';  // 帰社時刻
@@ -1080,8 +1077,7 @@ const SaveManager = (function() {
     const td2 = tr.querySelector('.time-display');
     if (td2) { td2.textContent = ''; }
 
-    // A+C+B: 空の値で各フィールドを更新（所在地は除外）
-    SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
+    // A+C+B: 空の値で各フィールドを更新（所在地・内線は除外）
     SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
