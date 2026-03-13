@@ -560,15 +560,6 @@ const SaveManager = (function() {
     const actionTd = document.createElement('td');
     actionTd.className = 'action-cell';
 
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'save-btn';
-    saveBtn.textContent = '保存';
-    saveBtn.addEventListener('click', () => {
-      // A+C+B: 即座に保存（デバウンスをスキップ）
-      SaveManager.manualSave();
-    });
-    actionTd.appendChild(saveBtn);
-
     const clearBtn = document.createElement('button');
     clearBtn.className = 'clear-btn';
     clearBtn.textContent = 'クリア';
@@ -1017,7 +1008,7 @@ const SaveManager = (function() {
   // 全行クリア
   // ========================================
   function clearAllRows() {
-    if (!confirm('すべての行の情報をクリアしますか？（名前以外）\n\nこの操作は取り消せません。')) {
+    if (!confirm('すべての行の情報をクリアしますか？（名前・所在地以外）\n\nこの操作は取り消せません。')) {
       return;
     }
 
@@ -1031,7 +1022,7 @@ const SaveManager = (function() {
     elements.clearAllBtn.disabled = true;
     elements.clearAllBtn.textContent = 'クリア中...';
 
-    // A+C+B: すべての行の値をクリア
+    // A+C+B: すべての行の値をクリア（所在地は残す）
     rows.forEach((tr) => {
       const rowIndex = parseInt(tr.dataset.rowIndex);
       const inputs = tr.querySelectorAll('input');
@@ -1047,18 +1038,12 @@ const SaveManager = (function() {
       const td1 = tr.querySelector('.time-display');
       if (td1) { td1.textContent = ''; }
 
-      // 所在地をリセット
-      const locBtn = tr.querySelector('.loc-cycle-btn');
-      if (locBtn) { setLocBtnState(locBtn, ''); }
-
-      // A+C+B: 変更をキューに追加
+      // A+C+B: 変更をキューに追加（所在地は除外）
       SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
-      SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
       SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
-      updateRowColorByLocation(rowIndex, '');
     });
 
     // 即座に保存
@@ -1076,14 +1061,14 @@ const SaveManager = (function() {
   // 行クリア
   // ========================================
   function clearRow(rowIndex) {
-    if (!confirm('この行の情報をクリアしますか？（名前以外）')) {
+    if (!confirm('この行の情報をクリアしますか？（名前・所在地以外）')) {
       return;
     }
 
     const tr = elements.tableBody.querySelector(`tr[data-row-index="${rowIndex}"]`);
     if (!tr) return;
 
-    // 入力フィールドを空にする
+    // 入力フィールドを空にする（所在地は残す）
     const inputs = tr.querySelectorAll('input');
     inputs[0].value = '';  // 内線
     inputs[1].value = '';  // 行先
@@ -1095,18 +1080,12 @@ const SaveManager = (function() {
     const td2 = tr.querySelector('.time-display');
     if (td2) { td2.textContent = ''; }
 
-    // 所在地をリセット
-    const locBtn2 = tr.querySelector('.loc-cycle-btn');
-    if (locBtn2) { setLocBtnState(locBtn2, ''); }
-
-    // A+C+B: 空の値で各フィールドを更新
+    // A+C+B: 空の値で各フィールドを更新（所在地は除外）
     SaveManager.onInputChange(currentDate, rowIndex, 'extension', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'destination', '');
-    SaveManager.onInputChange(currentDate, rowIndex, 'location', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'startTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'endTime', '');
     SaveManager.onInputChange(currentDate, rowIndex, 'note', '');
-    updateRowColorByLocation(rowIndex, '');
 
     // 即座に保存
     SaveManager.manualSave();

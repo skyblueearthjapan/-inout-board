@@ -661,7 +661,7 @@ body {
 }
 
 /* ========================================
-   操作ボタン（保存・クリア）
+   操作ボタン（クリア）
    ======================================== */
 .action-cell {
   display: flex;
@@ -670,32 +670,16 @@ body {
   padding: 4px !important;
 }
 
-.save-btn,
 .clear-btn {
   width: 100%;
-  height: 25px;
+  height: 46px;
   border: 0;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   transition: background 0.2s;
-}
-
-.save-btn {
-  background: #2f9e44;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #268039;
-}
-
-.save-btn:disabled {
-  background: #94d3a2;
-  cursor: not-allowed;
-}
-
-.clear-btn {
+  border-radius: 4px;
   background: #d9534f;
 }
 
@@ -838,9 +822,7 @@ body {
 /* 編集ロック状態 */
 .edit-locked .cell-input,
 .edit-locked .loc-cycle-btn,
-.edit-locked .time-display,
-.edit-locked .save-btn,
-.edit-locked .clear-btn {
+.edit-locked .time-display {
   pointer-events: none;
 }
 
