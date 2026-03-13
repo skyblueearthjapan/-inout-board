@@ -1005,10 +1005,35 @@ const SaveManager = (function() {
   }
 
   // ========================================
+  // カスタム確認ダイアログ（sandboxed iframe対応）
+  // ========================================
+  function showConfirm(message) {
+    return new Promise(function(resolve) {
+      var overlay = document.getElementById('confirmOverlay');
+      var msgEl = document.getElementById('confirmMessage');
+      var okBtn = document.getElementById('confirmOk');
+      var cancelBtn = document.getElementById('confirmCancel');
+      msgEl.textContent = message;
+      overlay.classList.remove('hidden');
+
+      function cleanup() {
+        overlay.classList.add('hidden');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+      }
+      function onOk() { cleanup(); resolve(true); }
+      function onCancel() { cleanup(); resolve(false); }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  // ========================================
   // 全行クリア
   // ========================================
-  function clearAllRows() {
-    if (!confirm('すべての行の情報をクリアしますか？（名前・所在地・内線以外）\n\nこの操作は取り消せません。')) {
+  async function clearAllRows() {
+    var confirmed = await showConfirm('すべての行の情報をクリアしますか？（名前・所在地・内線以外）\n\nこの操作は取り消せません。');
+    if (!confirmed) {
       return;
     }
 
@@ -1058,8 +1083,9 @@ const SaveManager = (function() {
   // ========================================
   // 行クリア
   // ========================================
-  function clearRow(rowIndex) {
-    if (!confirm('この行の情報をクリアしますか？（名前・所在地・内線以外）')) {
+  async function clearRow(rowIndex) {
+    var confirmed = await showConfirm('この行の情報をクリアしますか？（名前・所在地・内線以外）');
+    if (!confirmed) {
       return;
     }
 

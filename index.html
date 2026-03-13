@@ -91,6 +91,17 @@
     </div>
   </div>
   
+  <!-- 確認ダイアログ -->
+  <div id="confirmOverlay" class="confirm-overlay hidden">
+    <div class="confirm-dialog">
+      <div id="confirmMessage" class="confirm-dialog-body"></div>
+      <div class="confirm-dialog-buttons">
+        <button id="confirmCancel" class="confirm-cancel">キャンセル</button>
+        <button id="confirmOk" class="confirm-ok">クリア</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 初期日付を埋め込み -->
   <script>
     const INITIAL_DATE = '<?= initialDate ?>';
