@@ -190,19 +190,21 @@ const SheetService = (function() {
     const startRow = dataRange.getRow();
     
     // OutingRow配列に変換
-    // 列構成: A:人員 B:所在地 C:内線 D:行先 E:出社日 F:帰社時刻 G:備考
+    // 列構成: A:人員 B:部署 C:所在地 D:内線 E:行先 F:出社日 G:帰社時刻 H:備考
     const rows = values.map((row, index) => {
       const name = cellToString(row[0]);
-      const location = row.length > 1 ? cellToString(row[1]) : '';       // B列：所在地
-      const extension = row.length > 2 ? cellToString(row[2]) : '';      // C列：内線
-      const destination = row.length > 3 ? cellToString(row[3]) : '';    // D列：行先
-      const startTime = row.length > 4 ? cellToDateString(row[4]) : '';  // E列：出社日
-      const endTime = row.length > 5 ? cellToTimeString(row[5]) : '';    // F列：帰社時刻
-      const note = row.length > 6 ? cellToString(row[6]) : '';           // G列：備考
+      const department = row.length > 1 ? cellToString(row[1]) : '';     // B列：部署
+      const location = row.length > 2 ? cellToString(row[2]) : '';       // C列：所在地
+      const extension = row.length > 3 ? cellToString(row[3]) : '';      // D列：内線
+      const destination = row.length > 4 ? cellToString(row[4]) : '';    // E列：行先
+      const startTime = row.length > 5 ? cellToDateString(row[5]) : '';  // F列：出社日
+      const endTime = row.length > 6 ? cellToTimeString(row[6]) : '';    // G列：帰社時刻
+      const note = row.length > 7 ? cellToString(row[7]) : '';           // H列：備考
 
       return {
         rowIndex: startRow + index,
         name: name,
+        department: department,
         location: location,
         extension: extension,
         destination: destination,
@@ -254,23 +256,23 @@ const SheetService = (function() {
 
         const rowIndex = change.rowIndex;
 
-        // B〜G列（2〜7列目）を更新
-        // B:所在地, C:内線, D:行先, E:出社日, F:帰社時刻, G:備考
+        // C〜H列（3〜8列目）を更新（B列:部署はスキップ — 読み取り専用）
+        // C:所在地, D:内線, E:行先, F:出社日, G:帰社時刻, H:備考
         if (change.location !== undefined) {
-          sheet.getRange(rowIndex, 2).setValue(change.location || '');
+          sheet.getRange(rowIndex, 3).setValue(change.location || '');
         }
 
         if (change.extension !== undefined) {
-          sheet.getRange(rowIndex, 3).setValue(change.extension || '');
+          sheet.getRange(rowIndex, 4).setValue(change.extension || '');
         }
 
         if (change.destination !== undefined) {
-          sheet.getRange(rowIndex, 4).setValue(change.destination || '');
+          sheet.getRange(rowIndex, 5).setValue(change.destination || '');
         }
 
         // 出社日セルを文字列として保存
         if (change.startTime !== undefined) {
-          const startDateCell = sheet.getRange(rowIndex, 5);
+          const startDateCell = sheet.getRange(rowIndex, 6);
           startDateCell.setNumberFormat('@');
           startDateCell.setValue(change.startTime || '');
         }
@@ -278,19 +280,19 @@ const SheetService = (function() {
         // 帰社時刻セルを文字列として保存
         if (change.endTime !== undefined) {
           const normalizedEndTime = Validation.normalizeTime(change.endTime || '');
-          const endTimeCell = sheet.getRange(rowIndex, 6);
+          const endTimeCell = sheet.getRange(rowIndex, 7);
           endTimeCell.setNumberFormat('@');
           endTimeCell.setValue(normalizedEndTime);
         }
 
         if (change.note !== undefined) {
-          sheet.getRange(rowIndex, 7).setValue(change.note || '');
+          sheet.getRange(rowIndex, 8).setValue(change.note || '');
         }
 
         SpreadsheetApp.flush();
 
         // 更新後の行を読み直す
-        const updatedRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+        const updatedRow = sheet.getRange(rowIndex, 1, 1, 8).getValues()[0];
 
         results.push({
           success: true,
@@ -298,15 +300,16 @@ const SheetService = (function() {
           row: {
             rowIndex: rowIndex,
             name: cellToString(updatedRow[0]),
-            location: cellToString(updatedRow[1]),
-            extension: cellToString(updatedRow[2]),
-            destination: cellToString(updatedRow[3]),
-            startTime: cellToDateString(updatedRow[4]),
-            endTime: cellToTimeString(updatedRow[5]),
-            note: cellToString(updatedRow[6]),
+            department: cellToString(updatedRow[1]),
+            location: cellToString(updatedRow[2]),
+            extension: cellToString(updatedRow[3]),
+            destination: cellToString(updatedRow[4]),
+            startTime: cellToDateString(updatedRow[5]),
+            endTime: cellToTimeString(updatedRow[6]),
+            note: cellToString(updatedRow[7]),
             status: calculateStatus(
-              cellToDateString(updatedRow[4]),
-              cellToTimeString(updatedRow[5])
+              cellToDateString(updatedRow[5]),
+              cellToTimeString(updatedRow[6])
             )
           },
           error: null
@@ -345,43 +348,44 @@ const SheetService = (function() {
     
     const rowIndex = payload.rowIndex;
 
-    // B〜G列（2〜7列目）を更新
-    // B:所在地, C:内線, D:行先, E:出社日, F:帰社時刻, G:備考
+    // C〜H列（3〜8列目）を更新（B列:部署はスキップ — 読み取り専用）
+    // C:所在地, D:内線, E:行先, F:出社日, G:帰社時刻, H:備考
     const normalizedEndTime = Validation.normalizeTime(payload.endTime || '');
 
-    sheet.getRange(rowIndex, 2).setValue(payload.location || '');
-    sheet.getRange(rowIndex, 3).setValue(payload.extension || '');
-    sheet.getRange(rowIndex, 4).setValue(payload.destination || '');
+    sheet.getRange(rowIndex, 3).setValue(payload.location || '');
+    sheet.getRange(rowIndex, 4).setValue(payload.extension || '');
+    sheet.getRange(rowIndex, 5).setValue(payload.destination || '');
 
     // 出社日セルを文字列として保存（日付変換を防ぐ）
-    const startDateCell = sheet.getRange(rowIndex, 5);
+    const startDateCell = sheet.getRange(rowIndex, 6);
     startDateCell.setNumberFormat('@');
     startDateCell.setValue(payload.startTime || '');
 
     // 帰社時刻セルを文字列として保存（タイムゾーン変換を防ぐ）
-    const endTimeCell = sheet.getRange(rowIndex, 6);
+    const endTimeCell = sheet.getRange(rowIndex, 7);
     endTimeCell.setNumberFormat('@');
     endTimeCell.setValue(normalizedEndTime);
 
-    sheet.getRange(rowIndex, 7).setValue(payload.note || '');
+    sheet.getRange(rowIndex, 8).setValue(payload.note || '');
 
     SpreadsheetApp.flush();
 
     // 更新後の行を読み直す
-    const updatedRow = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+    const updatedRow = sheet.getRange(rowIndex, 1, 1, 8).getValues()[0];
 
     return {
       rowIndex: rowIndex,
       name: cellToString(updatedRow[0]),
-      location: cellToString(updatedRow[1]),
-      extension: cellToString(updatedRow[2]),
-      destination: cellToString(updatedRow[3]),
-      startTime: cellToDateString(updatedRow[4]),
-      endTime: cellToTimeString(updatedRow[5]),
-      note: cellToString(updatedRow[6]),
+      department: cellToString(updatedRow[1]),
+      location: cellToString(updatedRow[2]),
+      extension: cellToString(updatedRow[3]),
+      destination: cellToString(updatedRow[4]),
+      startTime: cellToDateString(updatedRow[5]),
+      endTime: cellToTimeString(updatedRow[6]),
+      note: cellToString(updatedRow[7]),
       status: calculateStatus(
-        cellToDateString(updatedRow[4]),
-        cellToTimeString(updatedRow[5])
+        cellToDateString(updatedRow[5]),
+        cellToTimeString(updatedRow[6])
       )
     };
   }

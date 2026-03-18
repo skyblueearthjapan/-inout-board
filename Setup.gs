@@ -237,6 +237,61 @@ function migrateSwapLocationDestination() {
 }
 
 /**
+ * 部署列（B列）を挿入するマイグレーション
+ *
+ * 変更前: A:人員 B:所在地 C:内線 D:行先 E:出社日 F:帰社時刻 G:備考
+ * 変更後: A:人員 B:部署 C:所在地 D:内線 E:行先 F:出社日 G:帰社時刻 H:備考
+ *
+ * 実行すると：
+ * 1. B列の前に新しい列を挿入（既存B〜G列がC〜H列にシフト）
+ * 2. ヘッダー行（3行目）のB列に「部署」を設定
+ * 3. ScriptProperties の HEADER_RANGE を A3:H3 に更新
+ * 4. ScriptProperties の DATA_RANGE を A4:H19 に更新
+ *
+ * ※ B3が既に「部署」の場合はスキップします
+ */
+function migrateAddDepartmentColumn() {
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = props.getProperty('SPREADSHEET_ID');
+  var sheetName = props.getProperty('SHEET_NAME') || '外出ホワイトボード';
+
+  if (!spreadsheetId || spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
+    throw new Error('SPREADSHEET_ID が設定されていません。先に initializeProperties を実行してください。');
+  }
+
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('シート「' + sheetName + '」が見つかりません。');
+  }
+
+  // B3が既に「部署」なら列挿入をスキップ
+  var headerB = String(sheet.getRange('B3').getValue()).trim();
+  if (headerB === '部署') {
+    Logger.log('B3は既に「部署」です。列挿入をスキップします。');
+  } else {
+    // B列の前に1列挿入（既存B〜G列 → C〜H列にシフト）
+    sheet.insertColumnBefore(2);
+    Logger.log('B列を挿入しました（既存B〜G列がC〜H列にシフト）。');
+
+    // ヘッダーを設定
+    sheet.getRange('B3').setValue('部署');
+    Logger.log('B3に「部署」ヘッダーを設定しました。');
+  }
+
+  // ScriptProperties を更新
+  props.setProperty('HEADER_RANGE', 'A3:H3');
+  props.setProperty('DATA_RANGE', 'A4:H19');
+
+  Logger.log('ScriptProperties を更新しました:');
+  Logger.log('  HEADER_RANGE: A3:H3');
+  Logger.log('  DATA_RANGE: A4:H19');
+  Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
+
+  return 'マイグレーション完了';
+}
+
+/**
  * 内線番号列（C列）を挿入するマイグレーション
  *
  * 変更前: A:人員 B:所在地 C:行先 D:出社日 E:帰社時刻 F:備考

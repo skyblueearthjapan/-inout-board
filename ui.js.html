@@ -538,6 +538,12 @@ const SaveManager = (function() {
     nameTd.textContent = row.name || '';
     tr.appendChild(nameTd);
 
+    // 部署セル（編集不可）
+    const deptTd = document.createElement('td');
+    deptTd.className = 'department-cell';
+    deptTd.textContent = row.department || '';
+    tr.appendChild(deptTd);
+
     // 所在地（トグルボタン）
     tr.appendChild(createLocationCell(row.location));
 
@@ -1117,6 +1123,10 @@ const SaveManager = (function() {
   // 行表示更新（A+C+B SaveManagerから使用）
   // ========================================
   function updateRowDisplay(tr, row) {
+    // 部署セルを更新
+    const deptCell = tr.querySelector('.department-cell');
+    if (deptCell) { deptCell.textContent = row.department || ''; }
+
     // 入力値を更新
     const inputs = tr.querySelectorAll('input');
     inputs[0].value = row.extension || '';

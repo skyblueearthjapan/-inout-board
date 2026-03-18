@@ -291,6 +291,20 @@ body {
   width: 100px;  /* 人員：狭く */
 }
 
+.col-department {
+  width: 80px;  /* 部署：コンパクト */
+}
+
+.department-cell {
+  padding: 0 8px !important;
+  font-weight: 600;
+  font-size: 14px;
+  color: #4a5568;
+  background: #f7f9fc;
+  white-space: nowrap;
+  text-align: center;
+}
+
 .col-destination {
   width: auto;  /* 行先：残り全部 */
 }
@@ -889,7 +903,7 @@ body {
 
 /* --- 横スクロール救済（案C） --- */
 .outing-table {
-  min-width: 1060px; /* 固定列計740px＋行先320px を確保。狭い端末では横スクロール */
+  min-width: 1140px; /* 固定列計820px＋行先320px を確保。狭い端末では横スクロール */
 }
 
 /* --- タブレット（ヘッダー短縮・省略表示のみ、列幅は変更なし） --- */
