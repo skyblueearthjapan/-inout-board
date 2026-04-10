@@ -32,7 +32,7 @@ function initializeProperties() {
     HEADER_RANGE: 'A3:E3',
     
     // データ範囲
-    DATA_RANGE: 'A4:E19'
+    DATA_RANGE: 'A4:G30'
   };
   // ========================================
   
@@ -170,11 +170,11 @@ function migrateAddLocationColumn() {
 
   // ScriptProperties を更新
   props.setProperty('HEADER_RANGE', 'A3:F3');
-  props.setProperty('DATA_RANGE', 'A4:F19');
+  props.setProperty('DATA_RANGE', 'A4:F30');
 
   Logger.log('ScriptProperties を更新しました:');
   Logger.log('  HEADER_RANGE: A3:F3');
-  Logger.log('  DATA_RANGE: A4:F19');
+  Logger.log('  DATA_RANGE: A4:F30');
   Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
 
   return 'マイグレーション完了';
@@ -219,8 +219,8 @@ function migrateSwapLocationDestination() {
   sheet.getRange('C3').setValue('行先');
   Logger.log('ヘッダーを入れ替えました: B3=所在地, C3=行先');
 
-  // データ行（4〜19行目）のB列とC列を入れ替え
-  var dataRange = sheet.getRange('B4:C19');
+  // データ行（4〜30行目）のB列とC列を入れ替え
+  var dataRange = sheet.getRange('B4:C30');
   var values = dataRange.getValues();
 
   var swapped = values.map(function(row) {
@@ -228,7 +228,7 @@ function migrateSwapLocationDestination() {
   });
 
   dataRange.setValues(swapped);
-  Logger.log('データ行（4〜19行目）のB列とC列を入れ替えました。');
+  Logger.log('データ行（4〜30行目）のB列とC列を入れ替えました。');
 
   SpreadsheetApp.flush();
   Logger.log('マイグレーション完了: 所在地↔行先 列入れ替え');
@@ -336,12 +336,34 @@ function migrateAddExtensionColumn() {
 
   // ScriptProperties を更新
   props.setProperty('HEADER_RANGE', 'A3:G3');
-  props.setProperty('DATA_RANGE', 'A4:G19');
+  props.setProperty('DATA_RANGE', 'A4:G30');
 
   Logger.log('ScriptProperties を更新しました:');
   Logger.log('  HEADER_RANGE: A3:G3');
-  Logger.log('  DATA_RANGE: A4:G19');
+  Logger.log('  DATA_RANGE: A4:G30');
   Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
 
   return 'マイグレーション完了';
+}
+
+/**
+ * データ範囲を A4:G30（27人分）に拡張するマイグレーション
+ *
+ * 変更前: DATA_RANGE: A4:G19（16人分）
+ * 変更後: DATA_RANGE: A4:G30（27人分）
+ *
+ * 実行手順：
+ * 1. clasp push でコードをデプロイ
+ * 2. GASエディタで migrateExpandDataRange を実行
+ * 3. Webアプリを再デプロイ（新しいバージョン）
+ */
+function migrateExpandDataRange() {
+  var props = PropertiesService.getScriptProperties();
+
+  props.setProperty('DATA_RANGE', 'A4:G30');
+
+  Logger.log('ScriptProperties を更新しました:');
+  Logger.log('  DATA_RANGE: A4:G30（27人分）');
+
+  return 'データ範囲拡張完了: A4:G30（27人分）';
 }
