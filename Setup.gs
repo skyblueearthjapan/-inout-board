@@ -281,11 +281,11 @@ function migrateAddDepartmentColumn() {
 
   // ScriptProperties を更新
   props.setProperty('HEADER_RANGE', 'A3:H3');
-  props.setProperty('DATA_RANGE', 'A4:H19');
+  props.setProperty('DATA_RANGE', 'A4:H30');
 
   Logger.log('ScriptProperties を更新しました:');
   Logger.log('  HEADER_RANGE: A3:H3');
-  Logger.log('  DATA_RANGE: A4:H19');
+  Logger.log('  DATA_RANGE: A4:H30');
   Logger.log('マイグレーション完了。新しいバージョンをデプロイしてください。');
 
   return 'マイグレーション完了';
