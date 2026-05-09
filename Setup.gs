@@ -367,3 +367,26 @@ function migrateExpandDataRange() {
 
   return 'データ範囲拡張完了: A4:G30（27人分）';
 }
+
+/**
+ * 備考欄（H列）を読み込み範囲に含めるマイグレーション
+ *
+ * 変更前: DATA_RANGE: A4:G30（H列の備考が読み込まれない）
+ * 変更後: DATA_RANGE: A4:H30
+ *
+ * 実行手順：
+ * 1. GASエディタで fixDataRangeIncludeNote を実行
+ * 2. ブラウザでアプリをリロードして備考欄が保持されることを確認
+ */
+function fixDataRangeIncludeNote() {
+  var props = PropertiesService.getScriptProperties();
+  var before = props.getProperty('DATA_RANGE');
+
+  props.setProperty('DATA_RANGE', 'A4:H30');
+  props.setProperty('HEADER_RANGE', 'A3:H3');
+
+  Logger.log('DATA_RANGE: ' + before + ' → A4:H30');
+  Logger.log('HEADER_RANGE: A3:H3');
+
+  return 'DATA_RANGE 修正完了（' + before + ' → A4:H30）';
+}
