@@ -14,7 +14,7 @@ const SheetService = (function() {
       sheetName: props.getProperty('SHEET_NAME') || '外出ホワイトボード',
       dateCell: props.getProperty('DATE_CELL') || 'D2',
       headerRange: props.getProperty('HEADER_RANGE') || 'A3:E3',
-      dataRange: props.getProperty('DATA_RANGE') || 'A4:E19'
+      dataRange: props.getProperty('DATA_RANGE') || 'A4:H19'
     };
   }
   
